@@ -1,12 +1,8 @@
 from flask import Flask, redirect, url_for, session, request
 from authlib.integrations.flask_client import OAuth
-import requests
-import csv
-from datetime import datetime
-import os
-import re
-import threading
 from werkzeug.middleware.proxy_fix import ProxyFix
+import requests, csv, os, re, threading, time
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -14,73 +10,90 @@ app = Flask(__name__)
 # 🔐 ENV VARIABLES
 # =========================
 
-SECRET_KEY = os.environ.get("FLASK_SECRET_KEY")
-YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
-ADMIN_KEY = os.environ.get("ADMIN_KEY")
-
-if not SECRET_KEY:
-    raise RuntimeError("FLASK_SECRET_KEY missing")
-
-if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-    raise RuntimeError("Google OAuth credentials missing")
-
-if not ADMIN_KEY:
-    raise RuntimeError("ADMIN_KEY missing")
-
-if not YOUTUBE_API_KEY:
-    raise RuntimeError("YOUTUBE_API_KEY missing")
+SECRET_KEY = os.environ["FLASK_SECRET_KEY"]
+GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
+GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
+YOUTUBE_API_KEY = os.environ["YOUTUBE_API_KEY"]
+ADMIN_KEY = os.environ["ADMIN_KEY"]
 
 app.secret_key = SECRET_KEY
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+# Secure cookies
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    PREFERRED_URL_SCHEME="https"
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=1)
 )
 
 # =========================
-# 📁 DATA STORAGE
+# 🛡 SECURITY HEADERS
 # =========================
 
-DATA_DIR = "data"
-os.makedirs(DATA_DIR, exist_ok=True)
+@app.after_request
+def secure_headers(response):
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Content-Security-Policy"] = "default-src 'self' https://accounts.google.com"
+    return response
 
-WINNER_FILE = os.path.join(DATA_DIR, "winner.txt")
-CLAIMS_FILE = os.path.join(DATA_DIR, "claims.csv")
-PROGRESS_FILE = os.path.join(DATA_DIR, "progress.csv")
+# =========================
+# 📁 STORAGE
+# =========================
+
+DATA = "data"
+os.makedirs(DATA, exist_ok=True)
+
+WINNER_FILE = f"{DATA}/winner.txt"
+CLAIMS_FILE = f"{DATA}/claims.csv"
+PROGRESS_FILE = f"{DATA}/progress.csv"
+LOCK_FILE = f"{DATA}/claim.lock"
 
 lock = threading.Lock()
 
 # =========================
-# 💾 WINNER STORAGE
+# 🚦 RATE LIMIT
 # =========================
 
-def load_winner():
+rate_limit = {}
+
+def limited(ip, limit=30, window=60):
+    now = time.time()
+    logs = rate_limit.get(ip, [])
+    logs = [t for t in logs if now - t < window]
+    logs.append(now)
+    rate_limit[ip] = logs
+    return len(logs) > limit
+
+# =========================
+# 💾 WINNER
+# =========================
+
+def get_winner():
     if os.path.exists(WINNER_FILE):
-        with open(WINNER_FILE, "r", encoding="utf-8") as f:
-            return f.read().strip()
+        return open(WINNER_FILE).read().strip()
     return None
 
-def save_winner(cid):
-    with open(WINNER_FILE, "w", encoding="utf-8") as f:
-        f.write(cid)
+def set_winner(cid):
+    with lock:
+        with open(WINNER_FILE, "w") as f:
+            f.write(cid)
 
 # =========================
-# ⭐ STEP LOGGING FUNCTION
+# 🧾 LOG
 # =========================
 
-def log_step(channel_id, step):
+def log(channel, step):
     with lock:
         with open(PROGRESS_FILE, "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow([
+            csv.writer(f).writerow([
                 datetime.now().isoformat(),
-                channel_id,
-                step
+                channel,
+                step,
+                request.remote_addr,
+                request.headers.get("User-Agent")
             ])
 
 # =========================
@@ -100,81 +113,15 @@ google = oauth.register(
 )
 
 # =========================
-# 🎨 PREMIUM TEMPLATE
-# =========================
-
-def premium_page(title, content):
-    return f"""
-    <html>
-    <head>
-        <title>{title}</title>
-        <meta name='viewport' content='width=device-width, initial-scale=1'>
-        <style>
-            body {{
-                margin:0;
-                height:100vh;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-family:Arial, sans-serif;
-                background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-                color:white;
-            }}
-            .card {{
-                background: rgba(255,255,255,0.08);
-                backdrop-filter: blur(20px);
-                border-radius:20px;
-                padding:35px;
-                width:90%;
-                max-width:420px;
-                text-align:center;
-                box-shadow:0 0 40px rgba(0,0,0,0.6);
-            }}
-            input {{
-                width:100%;
-                padding:14px;
-                margin:8px 0;
-                border-radius:10px;
-                border:none;
-                font-size:16px;
-            }}
-            button {{
-                width:100%;
-                padding:15px;
-                margin-top:15px;
-                font-size:18px;
-                border:none;
-                border-radius:12px;
-                background:#00c853;
-                color:white;
-                cursor:pointer;
-                font-weight:bold;
-            }}
-            .google {{background:#4285F4;}}
-            .error {{color:#ff5252;}}
-            .success {{color:#00e676;}}
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            {content}
-        </div>
-    </body>
-    </html>
-    """
-
-# =========================
 # 🏠 HOME
 # =========================
 
 @app.route("/")
 def home():
-    return premium_page("Prize Portal", """
-        <h1>🏆 Prize Claim Portal</h1>
-        <a href="/login">
-            <button class="google">🔐 Continue with Google</button>
-        </a>
-    """)
+    return """
+    <h1>🏆 Prize Claim Portal</h1>
+    <a href='/login'><button>Continue with Google</button></a>
+    """
 
 # =========================
 # 🔑 LOGIN
@@ -182,8 +129,9 @@ def home():
 
 @app.route("/login")
 def login():
-    redirect_uri = url_for("auth", _external=True, _scheme="https")
-    return google.authorize_redirect(redirect_uri)
+    return google.authorize_redirect(
+        url_for("auth", _external=True, _scheme="https")
+    )
 
 # =========================
 # 🔐 AUTH CALLBACK
@@ -191,119 +139,122 @@ def login():
 
 @app.route("/auth")
 def auth():
-    try:
-        token = google.authorize_access_token()
-    except Exception as e:
-        return premium_page("Error", f"<h2 class='error'>Login Failed</h2><p>{e}</p>")
+
+    ip = request.remote_addr
+    if limited(ip):
+        return "Too many requests"
+
+    token = google.authorize_access_token()
+    access_token = token.get("access_token")
 
     yt = requests.get(
         "https://www.googleapis.com/youtube/v3/channels?part=id&mine=true",
-        headers={"Authorization": "Bearer " + token["access_token"]}
+        headers={"Authorization": "Bearer " + access_token}
     ).json()
 
-    if "items" not in yt or not yt["items"]:
-        return premium_page("Error", "<h2 class='error'>YouTube access failed</h2>")
+    if not yt.get("items"):
+        return "YouTube access failed"
 
-    session["channel_id"] = yt["items"][0]["id"]
-    log_step(session["channel_id"], "logged_in")
+    cid = yt["items"][0]["id"]
+    session["channel_id"] = cid
+    log(cid, "login")
 
-    return redirect(url_for("verify"))
+    return redirect("/verify")
 
 # =========================
-# ✅ VERIFY WINNER
+# ✅ VERIFY
 # =========================
 
 @app.route("/verify")
 def verify():
-    if "channel_id" not in session:
-        return redirect(url_for("home"))
 
-    log_step(session["channel_id"], "verify_page")
+    cid = session.get("channel_id")
+    if not cid:
+        return redirect("/")
 
-    winner_channel_id = load_winner()
+    winner = get_winner()
 
-    if not winner_channel_id:
-        return premium_page("Pending", "<h2>Winner not announced yet</h2>")
+    if not winner:
+        return "Winner not announced"
 
-    if session["channel_id"] == winner_channel_id:
-        log_step(session["channel_id"], "winner_verified")
-        return redirect(url_for("claim"))
-    else:
-        log_step(session["channel_id"], "not_winner")
-        return premium_page("Denied", "<h2 class='error'>Access Denied — Not Winner</h2>")
+    if cid != winner:
+        return "❌ Not Winner"
+
+    log(cid, "verified")
+    return redirect("/claim")
 
 # =========================
-# 📝 CLAIM FORM
+# 📝 CLAIM
 # =========================
 
-def sanitize(value):
-    if value.startswith(("=", "+", "-", "@")):
-        return "'" + value
-    return value
+upi_regex = r"^[a-zA-Z0-9._-]{2,}@[a-zA-Z]{2,}$"
 
-upi_pattern = r"^[a-zA-Z0-9._-]{2,}@[a-zA-Z]{2,}$"
+def clean(v):
+    if v.lstrip().startswith(("=", "+", "-", "@")):
+        return "'" + v
+    return v
 
 @app.route("/claim", methods=["GET", "POST"])
 def claim():
-    if "channel_id" not in session:
-        return redirect(url_for("home"))
+
+    cid = session.get("channel_id")
+    if not cid:
+        return redirect("/")
+
+    if os.path.exists(LOCK_FILE):
+        return "Claim already completed"
 
     if request.method == "POST":
 
-        name = sanitize(request.form.get("name", "").strip())
-        upi = sanitize(request.form.get("upi", "").strip())
-        phone = sanitize(request.form.get("phone", "").strip())
+        name = clean(request.form["name"].strip())
+        upi = clean(request.form["upi"].strip())
+        phone = clean(request.form["phone"].strip())
 
-        if not name or not upi or not phone:
-            return premium_page("Error", "<h2 class='error'>All fields required</h2>")
-
-        if not re.match(upi_pattern, upi):
-            return premium_page("Error", "<h2 class='error'>Invalid UPI ID</h2>")
+        if not re.match(upi_regex, upi):
+            return "Invalid UPI"
 
         if not re.match(r"^[6-9]\d{9}$", phone):
-            return premium_page("Error", "<h2 class='error'>Invalid phone number</h2>")
+            return "Invalid phone"
 
+        # duplicate check
         if os.path.exists(CLAIMS_FILE):
-            with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
-                if session["channel_id"] in f.read():
-                    return premium_page("Error", "<h2 class='error'>Already submitted</h2>")
+            for row in csv.reader(open(CLAIMS_FILE)):
+                if row and row[1] == cid:
+                    return "Already claimed"
 
         with lock:
             with open(CLAIMS_FILE, "a", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                writer.writerow([
+                csv.writer(f).writerow([
                     datetime.now().isoformat(),
-                    session["channel_id"],
-                    name,
-                    upi,
-                    phone
+                    cid, name, upi, phone
                 ])
 
-        log_step(session["channel_id"], "claim_submitted")
-        return premium_page("Success", "<h2 class='success'>✅ Claim Submitted Successfully</h2>")
+            open(LOCK_FILE, "w").write("done")
 
-    log_step(session["channel_id"], "form_opened")
+        log(cid, "claimed")
+        return "✅ Prize Claim Submitted"
 
-    return premium_page("Claim Prize", """
-        <h1>🎁 Prize Claim Form</h1>
-        <form method="post">
-            <input name="name" placeholder="Full Name" required>
-            <input name="upi" placeholder="UPI ID" required>
-            <input name="phone" placeholder="Phone Number" required>
-            <button type="submit">Submit Claim</button>
-        </form>
-    """)
+    return """
+    <h2>Claim Prize</h2>
+    <form method='post'>
+    <input name='name' placeholder='Full Name' required>
+    <input name='upi' placeholder='UPI ID' required>
+    <input name='phone' placeholder='Phone' required>
+    <button>Submit</button>
+    </form>
+    """
 
 # =========================
-# 🏆 SET WINNER (ADMIN)
+# 🏆 ADMIN SET WINNER
 # =========================
 
 @app.route("/set_winner", methods=["POST"])
-def set_winner():
-    if request.form.get("admin_key") != ADMIN_KEY:
-        return "Unauthorized"
+def admin_set():
 
-    handle = request.form.get("handle", "").replace("@", "")
+    if request.headers.get("X-ADMIN-KEY") != ADMIN_KEY:
+        return "Unauthorized", 403
+
+    handle = request.form["handle"].replace("@", "")
 
     r = requests.get(
         f"https://www.googleapis.com/youtube/v3/channels?part=id&forHandle={handle}&key={YOUTUBE_API_KEY}"
@@ -312,66 +263,25 @@ def set_winner():
     if not r.get("items"):
         return "Channel not found"
 
-    winner_channel_id = r["items"][0]["id"]
-    save_winner(winner_channel_id)
+    cid = r["items"][0]["id"]
+    set_winner(cid)
 
-    return f"Winner set successfully: {winner_channel_id}"
-
-# =========================
-# 🔐 ADMIN LOGIN (KEY HIDDEN)
-# =========================
-
-@app.route("/admin", methods=["GET", "POST"])
-def admin_login():
-
-    if request.method == "POST":
-        if request.form.get("key") == ADMIN_KEY:
-            session["admin"] = True
-            return redirect("/progress")
-        else:
-            return "Wrong Key"
-
-    return """
-    <h2>Admin Login</h2>
-    <form method="post">
-        <input name="key" placeholder="Enter Admin Key" required>
-        <button type="submit">Login</button>
-    </form>
-    """
+    return f"Winner set: {cid}"
 
 # =========================
-# 📊 VIEW PROGRESS (ADMIN)
+# 📊 ADMIN CLAIM VIEW
 # =========================
 
-@app.route("/progress")
-def view_progress():
-    if not session.get("admin"):
-        return redirect("/admin")
+@app.route("/claims")
+def claims():
 
-    if not os.path.exists(PROGRESS_FILE):
-        return "No data"
-
-    with open(PROGRESS_FILE, "r", encoding="utf-8") as f:
-        data = f.read()
-
-    return "<pre>" + data + "</pre>"
-
-# =========================
-# 📊 VIEW CLAIMS (ADMIN)
-# =========================
-
-@app.route("/view_claims")
-def view_claims():
-    if not session.get("admin"):
-        return redirect("/admin")
+    if request.args.get("key") != ADMIN_KEY:
+        return "Unauthorized"
 
     if not os.path.exists(CLAIMS_FILE):
-        return "No claims yet"
+        return "No claims"
 
-    with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
-        data = f.read()
-
-    return "<pre>" + data + "</pre>"
+    return "<pre>" + open(CLAIMS_FILE).read() + "</pre>"
 
 # =========================
 # 🚪 LOGOUT
@@ -380,12 +290,11 @@ def view_claims():
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("home"))
+    return redirect("/")
 
 # =========================
 # 🚀 RUN
 # =========================
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 7000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 7000)))
