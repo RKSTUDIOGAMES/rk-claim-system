@@ -51,6 +51,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 WINNER_FILE = os.path.join(DATA_DIR, "winner.txt")
 CLAIMS_FILE = os.path.join(DATA_DIR, "claims.csv")
+PROGRESS_FILE = os.path.join(DATA_DIR, "progress.csv")  # ⭐ NEW
 
 lock = threading.Lock()
 
@@ -67,6 +68,20 @@ def load_winner():
 def save_winner(cid):
     with open(WINNER_FILE, "w", encoding="utf-8") as f:
         f.write(cid)
+
+# =========================
+# ⭐ STEP LOGGING FUNCTION
+# =========================
+
+def log_step(channel_id, step):
+    with lock:
+        with open(PROGRESS_FILE, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                datetime.now().isoformat(),
+                channel_id,
+                step
+            ])
 
 # =========================
 # 🔐 GOOGLE OAUTH
@@ -117,9 +132,6 @@ def premium_page(title, content):
                 box-shadow:0 0 40px rgba(0,0,0,0.6);
             }}
 
-            h1 {{margin-bottom:10px;}}
-            p {{opacity:0.8;}}
-
             input {{
                 width:100%;
                 padding:14px;
@@ -140,18 +152,9 @@ def premium_page(title, content):
                 color:white;
                 cursor:pointer;
                 font-weight:bold;
-                transition:0.3s;
             }}
 
-            button:hover {{
-                transform:translateY(-2px);
-                box-shadow:0 10px 25px rgba(0,200,83,0.6);
-            }}
-
-            .google {{
-                background:#4285F4;
-            }}
-
+            .google {{background:#4285F4;}}
             .error {{color:#ff5252;}}
             .success {{color:#00e676;}}
         </style>
@@ -172,7 +175,6 @@ def premium_page(title, content):
 def home():
     return premium_page("Prize Portal", """
         <h1>🏆 Prize Claim Portal</h1>
-        <p>Secure verification via Google & YouTube</p>
         <a href="/login">
             <button class="google">🔐 Continue with Google</button>
         </a>
@@ -207,6 +209,9 @@ def auth():
         return premium_page("Error", "<h2 class='error'>YouTube access failed</h2>")
 
     session["channel_id"] = yt["items"][0]["id"]
+
+    log_step(session["channel_id"], "logged_in")  # ⭐ NEW
+
     return redirect(url_for("verify"))
 
 # =========================
@@ -218,14 +223,18 @@ def verify():
     if "channel_id" not in session:
         return redirect(url_for("home"))
 
+    log_step(session["channel_id"], "verify_page")  # ⭐ NEW
+
     winner_channel_id = load_winner()
 
     if not winner_channel_id:
         return premium_page("Pending", "<h2>Winner not announced yet</h2>")
 
     if session["channel_id"] == winner_channel_id:
+        log_step(session["channel_id"], "winner_verified")  # ⭐ NEW
         return redirect(url_for("claim"))
     else:
+        log_step(session["channel_id"], "not_winner")  # ⭐ NEW
         return premium_page("Denied", "<h2 class='error'>Access Denied — Not Winner</h2>")
 
 # =========================
@@ -275,7 +284,11 @@ def claim():
                     phone
                 ])
 
+        log_step(session["channel_id"], "claim_submitted")  # ⭐ NEW
+
         return premium_page("Success", "<h2 class='success'>✅ Claim Submitted Successfully</h2>")
+
+    log_step(session["channel_id"], "form_opened")  # ⭐ NEW
 
     return premium_page("Claim Prize", """
         <h1>🎁 Prize Claim Form</h1>
@@ -311,18 +324,18 @@ def set_winner():
     return f"Winner set successfully: {winner_channel_id}"
 
 # =========================
-# 📊 VIEW CLAIMS (ADMIN)
+# 📊 VIEW PROGRESS (ADMIN)
 # =========================
 
-@app.route("/view_claims")
-def view_claims():
+@app.route("/progress")
+def view_progress():
     if request.args.get("key") != ADMIN_KEY:
         return "Unauthorized"
 
-    if not os.path.exists(CLAIMS_FILE):
-        return "No claims yet"
+    if not os.path.exists(PROGRESS_FILE):
+        return "No data"
 
-    with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
+    with open(PROGRESS_FILE, "r", encoding="utf-8") as f:
         data = f.read()
 
     return "<pre>" + data + "</pre>"
