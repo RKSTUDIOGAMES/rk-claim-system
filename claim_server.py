@@ -39,13 +39,14 @@ app.secret_key = SECRET_KEY
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # =========================
-# 🔐 SESSION SECURITY
+# 🔐 SESSION SECURITY (FIXED)
 # =========================
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax"
+    SESSION_COOKIE_SAMESITE="None",  # ⭐ CRITICAL FIX
+    PREFERRED_URL_SCHEME="https"
 )
 
 # =========================
