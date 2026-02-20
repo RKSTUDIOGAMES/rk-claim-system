@@ -5,14 +5,13 @@ import csv
 from datetime import datetime
 import os
 import re
-
-# ✅ Render HTTPS fix
+import threading
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
 
 # =========================
-# 🔐 REQUIRED ENV VARIABLES
+# 🔐 ENV VARIABLES
 # =========================
 
 SECRET_KEY = os.environ.get("FLASK_SECRET_KEY")
@@ -34,33 +33,39 @@ if not YOUTUBE_API_KEY:
     raise RuntimeError("YOUTUBE_API_KEY missing")
 
 app.secret_key = SECRET_KEY
-
-# ✅ Render proxy fix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-# =========================
-# 🔐 SESSION SECURITY (FIXED)
-# =========================
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="None",  # ⭐ CRITICAL FIX
+    SESSION_COOKIE_SAMESITE="Lax",
     PREFERRED_URL_SCHEME="https"
 )
+
+# =========================
+# 📁 DATA STORAGE
+# =========================
+
+DATA_DIR = "data"
+os.makedirs(DATA_DIR, exist_ok=True)
+
+WINNER_FILE = os.path.join(DATA_DIR, "winner.txt")
+CLAIMS_FILE = os.path.join(DATA_DIR, "claims.csv")
+
+lock = threading.Lock()
 
 # =========================
 # 💾 WINNER STORAGE
 # =========================
 
 def load_winner():
-    if os.path.exists("winner.txt"):
-        with open("winner.txt", "r", encoding="utf-8") as f:
+    if os.path.exists(WINNER_FILE):
+        with open(WINNER_FILE, "r", encoding="utf-8") as f:
             return f.read().strip()
     return None
 
 def save_winner(cid):
-    with open("winner.txt", "w", encoding="utf-8") as f:
+    with open(WINNER_FILE, "w", encoding="utf-8") as f:
         f.write(cid)
 
 # =========================
@@ -80,19 +85,98 @@ google = oauth.register(
 )
 
 # =========================
+# 🎨 PREMIUM TEMPLATE
+# =========================
+
+def premium_page(title, content):
+    return f"""
+    <html>
+    <head>
+        <title>{title}</title>
+        <meta name='viewport' content='width=device-width, initial-scale=1'>
+        <style>
+            body {{
+                margin:0;
+                height:100vh;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                font-family:Arial, sans-serif;
+                background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+                color:white;
+            }}
+
+            .card {{
+                background: rgba(255,255,255,0.08);
+                backdrop-filter: blur(20px);
+                border-radius:20px;
+                padding:35px;
+                width:90%;
+                max-width:420px;
+                text-align:center;
+                box-shadow:0 0 40px rgba(0,0,0,0.6);
+            }}
+
+            h1 {{margin-bottom:10px;}}
+            p {{opacity:0.8;}}
+
+            input {{
+                width:100%;
+                padding:14px;
+                margin:8px 0;
+                border-radius:10px;
+                border:none;
+                font-size:16px;
+            }}
+
+            button {{
+                width:100%;
+                padding:15px;
+                margin-top:15px;
+                font-size:18px;
+                border:none;
+                border-radius:12px;
+                background:#00c853;
+                color:white;
+                cursor:pointer;
+                font-weight:bold;
+                transition:0.3s;
+            }}
+
+            button:hover {{
+                transform:translateY(-2px);
+                box-shadow:0 10px 25px rgba(0,200,83,0.6);
+            }}
+
+            .google {{
+                background:#4285F4;
+            }}
+
+            .error {{color:#ff5252;}}
+            .success {{color:#00e676;}}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            {content}
+        </div>
+    </body>
+    </html>
+    """
+
+# =========================
 # 🏠 HOME
 # =========================
 
 @app.route("/")
 def home():
-    return """
-    <h1>Prize Claim Portal</h1>
-    <a href='/login'>
-    <button style='font-size:20px;padding:10px 20px'>
-    Login with Google
-    </button>
-    </a>
-    """
+    return premium_page("Prize Portal", """
+        <h1>🏆 Prize Claim Portal</h1>
+        <p>Secure verification via Google & YouTube</p>
+        <a href="/login">
+            <button class="google">🔐 Continue with Google</button>
+        </a>
+    """)
 
 # =========================
 # 🔑 LOGIN
@@ -112,7 +196,7 @@ def auth():
     try:
         token = google.authorize_access_token()
     except Exception as e:
-        return f"Login Failed: {e}"
+        return premium_page("Error", f"<h2 class='error'>Login Failed</h2><p>{e}</p>")
 
     yt = requests.get(
         "https://www.googleapis.com/youtube/v3/channels?part=id&mine=true",
@@ -120,7 +204,7 @@ def auth():
     ).json()
 
     if "items" not in yt or not yt["items"]:
-        return f"YouTube error: {yt}"
+        return premium_page("Error", "<h2 class='error'>YouTube access failed</h2>")
 
     session["channel_id"] = yt["items"][0]["id"]
     return redirect(url_for("verify"))
@@ -137,12 +221,12 @@ def verify():
     winner_channel_id = load_winner()
 
     if not winner_channel_id:
-        return "Winner not set yet"
+        return premium_page("Pending", "<h2>Winner not announced yet</h2>")
 
     if session["channel_id"] == winner_channel_id:
         return redirect(url_for("claim"))
     else:
-        return "<h2>Access Denied — Not Winner</h2>"
+        return premium_page("Denied", "<h2 class='error'>Access Denied — Not Winner</h2>")
 
 # =========================
 # 📝 CLAIM FORM
@@ -153,7 +237,7 @@ def sanitize(value):
         return "'" + value
     return value
 
-upi_pattern = r"^[\w.-]+@[\w.-]+$"
+upi_pattern = r"^[a-zA-Z0-9._-]{2,}@[a-zA-Z]{2,}$"
 
 @app.route("/claim", methods=["GET", "POST"])
 def claim():
@@ -167,43 +251,41 @@ def claim():
         phone = sanitize(request.form.get("phone", "").strip())
 
         if not name or not upi or not phone:
-            return "All fields required"
+            return premium_page("Error", "<h2 class='error'>All fields required</h2>")
 
         if not re.match(upi_pattern, upi):
-            return "Invalid UPI ID"
+            return premium_page("Error", "<h2 class='error'>Invalid UPI ID</h2>")
 
-        if not phone.isdigit() or len(phone) < 10:
-            return "Invalid phone number"
+        if not re.match(r"^[6-9]\d{9}$", phone):
+            return premium_page("Error", "<h2 class='error'>Invalid phone number</h2>")
 
-        # ✅ Strong duplicate check
-        if os.path.exists("claims.csv"):
-            with open("claims.csv", "r", encoding="utf-8") as f:
-                reader = csv.reader(f)
-                for row in reader:
-                    if len(row) > 1 and row[1] == session["channel_id"]:
-                        return "Already submitted"
+        if os.path.exists(CLAIMS_FILE):
+            with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
+                if session["channel_id"] in f.read():
+                    return premium_page("Error", "<h2 class='error'>Already submitted</h2>")
 
-        with open("claims.csv", "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                datetime.now().isoformat(),
-                session["channel_id"],
-                name,
-                upi,
-                phone
-            ])
+        with lock:
+            with open(CLAIMS_FILE, "a", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    datetime.now().isoformat(),
+                    session["channel_id"],
+                    name,
+                    upi,
+                    phone
+                ])
 
-        return "<h2>Claim Submitted Successfully ✅</h2>"
+        return premium_page("Success", "<h2 class='success'>✅ Claim Submitted Successfully</h2>")
 
-    return """
-    <h2>Prize Claim Form</h2>
-    <form method='post'>
-        Name:<br><input name='name' required><br><br>
-        UPI ID:<br><input name='upi' required><br><br>
-        Phone:<br><input name='phone' required><br><br>
-        <button type='submit'>Submit</button>
-    </form>
-    """
+    return premium_page("Claim Prize", """
+        <h1>🎁 Prize Claim Form</h1>
+        <form method="post">
+            <input name="name" placeholder="Full Name" required>
+            <input name="upi" placeholder="UPI ID" required>
+            <input name="phone" placeholder="Phone Number" required>
+            <button type="submit">Submit Claim</button>
+        </form>
+    """)
 
 # =========================
 # 🏆 SET WINNER (ADMIN)
@@ -211,14 +293,10 @@ def claim():
 
 @app.route("/set_winner", methods=["POST"])
 def set_winner():
-
     if request.form.get("admin_key") != ADMIN_KEY:
         return "Unauthorized"
 
     handle = request.form.get("handle", "").replace("@", "")
-
-    if not handle:
-        return "Handle required"
 
     r = requests.get(
         f"https://www.googleapis.com/youtube/v3/channels?part=id&forHandle={handle}&key={YOUTUBE_API_KEY}"
@@ -238,14 +316,13 @@ def set_winner():
 
 @app.route("/view_claims")
 def view_claims():
-
     if request.args.get("key") != ADMIN_KEY:
         return "Unauthorized"
 
-    if not os.path.exists("claims.csv"):
+    if not os.path.exists(CLAIMS_FILE):
         return "No claims yet"
 
-    with open("claims.csv", "r", encoding="utf-8") as f:
+    with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
         data = f.read()
 
     return "<pre>" + data + "</pre>"
