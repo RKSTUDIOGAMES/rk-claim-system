@@ -350,9 +350,27 @@ def logout():
     return redirect(url_for("home"))
 
 # =========================
+# 📊 VIEW CLAIMS (ADMIN)
+# =========================
+
+@app.route("/view_claims")
+def view_claims():
+    if request.args.get("key") != ADMIN_KEY:
+        return "Unauthorized"
+
+    if not os.path.exists(CLAIMS_FILE):
+        return "No claims yet"
+
+    with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
+        data = f.read()
+
+    return "<pre>" + data + "</pre>"
+
+# =========================
 # 🚀 RUN
 # =========================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
