@@ -51,7 +51,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 WINNER_FILE = os.path.join(DATA_DIR, "winner.txt")
 CLAIMS_FILE = os.path.join(DATA_DIR, "claims.csv")
-PROGRESS_FILE = os.path.join(DATA_DIR, "progress.csv")  # ⭐ NEW
+PROGRESS_FILE = os.path.join(DATA_DIR, "progress.csv")
 
 lock = threading.Lock()
 
@@ -120,7 +120,6 @@ def premium_page(title, content):
                 background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
                 color:white;
             }}
-
             .card {{
                 background: rgba(255,255,255,0.08);
                 backdrop-filter: blur(20px);
@@ -131,7 +130,6 @@ def premium_page(title, content):
                 text-align:center;
                 box-shadow:0 0 40px rgba(0,0,0,0.6);
             }}
-
             input {{
                 width:100%;
                 padding:14px;
@@ -140,7 +138,6 @@ def premium_page(title, content):
                 border:none;
                 font-size:16px;
             }}
-
             button {{
                 width:100%;
                 padding:15px;
@@ -153,7 +150,6 @@ def premium_page(title, content):
                 cursor:pointer;
                 font-weight:bold;
             }}
-
             .google {{background:#4285F4;}}
             .error {{color:#ff5252;}}
             .success {{color:#00e676;}}
@@ -209,8 +205,7 @@ def auth():
         return premium_page("Error", "<h2 class='error'>YouTube access failed</h2>")
 
     session["channel_id"] = yt["items"][0]["id"]
-
-    log_step(session["channel_id"], "logged_in")  # ⭐ NEW
+    log_step(session["channel_id"], "logged_in")
 
     return redirect(url_for("verify"))
 
@@ -223,7 +218,7 @@ def verify():
     if "channel_id" not in session:
         return redirect(url_for("home"))
 
-    log_step(session["channel_id"], "verify_page")  # ⭐ NEW
+    log_step(session["channel_id"], "verify_page")
 
     winner_channel_id = load_winner()
 
@@ -231,10 +226,10 @@ def verify():
         return premium_page("Pending", "<h2>Winner not announced yet</h2>")
 
     if session["channel_id"] == winner_channel_id:
-        log_step(session["channel_id"], "winner_verified")  # ⭐ NEW
+        log_step(session["channel_id"], "winner_verified")
         return redirect(url_for("claim"))
     else:
-        log_step(session["channel_id"], "not_winner")  # ⭐ NEW
+        log_step(session["channel_id"], "not_winner")
         return premium_page("Denied", "<h2 class='error'>Access Denied — Not Winner</h2>")
 
 # =========================
@@ -284,11 +279,10 @@ def claim():
                     phone
                 ])
 
-        log_step(session["channel_id"], "claim_submitted")  # ⭐ NEW
-
+        log_step(session["channel_id"], "claim_submitted")
         return premium_page("Success", "<h2 class='success'>✅ Claim Submitted Successfully</h2>")
 
-    log_step(session["channel_id"], "form_opened")  # ⭐ NEW
+    log_step(session["channel_id"], "form_opened")
 
     return premium_page("Claim Prize", """
         <h1>🎁 Prize Claim Form</h1>
@@ -324,18 +318,57 @@ def set_winner():
     return f"Winner set successfully: {winner_channel_id}"
 
 # =========================
+# 🔐 ADMIN LOGIN (KEY HIDDEN)
+# =========================
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin_login():
+
+    if request.method == "POST":
+        if request.form.get("key") == ADMIN_KEY:
+            session["admin"] = True
+            return redirect("/progress")
+        else:
+            return "Wrong Key"
+
+    return """
+    <h2>Admin Login</h2>
+    <form method="post">
+        <input name="key" placeholder="Enter Admin Key" required>
+        <button type="submit">Login</button>
+    </form>
+    """
+
+# =========================
 # 📊 VIEW PROGRESS (ADMIN)
 # =========================
 
 @app.route("/progress")
 def view_progress():
-    if request.args.get("key") != ADMIN_KEY:
-        return "Unauthorized"
+    if not session.get("admin"):
+        return redirect("/admin")
 
     if not os.path.exists(PROGRESS_FILE):
         return "No data"
 
     with open(PROGRESS_FILE, "r", encoding="utf-8") as f:
+        data = f.read()
+
+    return "<pre>" + data + "</pre>"
+
+# =========================
+# 📊 VIEW CLAIMS (ADMIN)
+# =========================
+
+@app.route("/view_claims")
+def view_claims():
+    if not session.get("admin"):
+        return redirect("/admin")
+
+    if not os.path.exists(CLAIMS_FILE):
+        return "No claims yet"
+
+    with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
         data = f.read()
 
     return "<pre>" + data + "</pre>"
@@ -350,27 +383,9 @@ def logout():
     return redirect(url_for("home"))
 
 # =========================
-# 📊 VIEW CLAIMS (ADMIN)
-# =========================
-
-@app.route("/view_claims")
-def view_claims():
-    if request.args.get("key") != ADMIN_KEY:
-        return "Unauthorized"
-
-    if not os.path.exists(CLAIMS_FILE):
-        return "No claims yet"
-
-    with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
-        data = f.read()
-
-    return "<pre>" + data + "</pre>"
-
-# =========================
 # 🚀 RUN
 # =========================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
-
