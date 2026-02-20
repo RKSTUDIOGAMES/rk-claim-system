@@ -5,6 +5,9 @@ import csv
 from datetime import datetime
 import os
 
+# ✅ IMPORTANT — Render HTTPS fix
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 app = Flask(__name__)
 
 # =========================
@@ -15,12 +18,15 @@ SECRET_KEY = os.environ.get("FLASK_SECRET_KEY")
 YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
-ADMIN_KEY = os.environ.get("ADMIN_KEY")  # admin protection
+ADMIN_KEY = os.environ.get("ADMIN_KEY")
 
 if not SECRET_KEY:
     raise RuntimeError("FLASK_SECRET_KEY missing")
 
 app.secret_key = SECRET_KEY
+
+# ✅ Render proxy fix (VERY IMPORTANT)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # =========================
 # 🔐 SESSION SECURITY
@@ -33,7 +39,7 @@ app.config.update(
 )
 
 # =========================
-# 💾 WINNER STORAGE (PERSISTENT)
+# 💾 WINNER STORAGE
 # =========================
 
 def load_winner():
@@ -78,7 +84,9 @@ def home():
 
 @app.route("/login")
 def login():
-    return google.authorize_redirect(url_for("auth", _external=True))
+    # ✅ Force HTTPS redirect (IMPORTANT)
+    redirect_uri = url_for("auth", _external=True, _scheme="https")
+    return google.authorize_redirect(redirect_uri)
 
 # =========================
 # 🔐 AUTH CALLBACK
@@ -88,8 +96,8 @@ def login():
 def auth():
     try:
         token = google.authorize_access_token()
-    except Exception:
-        return "Login Failed"
+    except Exception as e:
+        return f"Login Failed: {e}"
 
     yt = requests.get(
         "https://www.googleapis.com/youtube/v3/channels?part=id&mine=true",
@@ -165,7 +173,7 @@ def claim():
     """
 
 # =========================
-# 🏆 SET WINNER (ADMIN ONLY)
+# 🏆 SET WINNER (ADMIN)
 # =========================
 
 @app.route("/set_winner", methods=["POST"])
