@@ -4,8 +4,9 @@ import requests
 import csv
 from datetime import datetime
 import os
+import re
 
-# ✅ IMPORTANT — Render HTTPS fix
+# ✅ Render HTTPS fix
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
@@ -23,9 +24,18 @@ ADMIN_KEY = os.environ.get("ADMIN_KEY")
 if not SECRET_KEY:
     raise RuntimeError("FLASK_SECRET_KEY missing")
 
+if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+    raise RuntimeError("Google OAuth credentials missing")
+
+if not ADMIN_KEY:
+    raise RuntimeError("ADMIN_KEY missing")
+
+if not YOUTUBE_API_KEY:
+    raise RuntimeError("YOUTUBE_API_KEY missing")
+
 app.secret_key = SECRET_KEY
 
-# ✅ Render proxy fix (VERY IMPORTANT)
+# ✅ Render proxy fix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # =========================
@@ -52,8 +62,6 @@ def save_winner(cid):
     with open("winner.txt", "w", encoding="utf-8") as f:
         f.write(cid)
 
-winner_channel_id = load_winner()
-
 # =========================
 # 🔐 GOOGLE OAUTH
 # =========================
@@ -76,7 +84,14 @@ google = oauth.register(
 
 @app.route("/")
 def home():
-    return "<h1>Prize Claim Portal</h1><a href='/login'>Login with Google</a>"
+    return """
+    <h1>Prize Claim Portal</h1>
+    <a href='/login'>
+    <button style='font-size:20px;padding:10px 20px'>
+    Login with Google
+    </button>
+    </a>
+    """
 
 # =========================
 # 🔑 LOGIN
@@ -84,7 +99,6 @@ def home():
 
 @app.route("/login")
 def login():
-    # ✅ Force HTTPS redirect (IMPORTANT)
     redirect_uri = url_for("auth", _external=True, _scheme="https")
     return google.authorize_redirect(redirect_uri)
 
@@ -104,11 +118,11 @@ def auth():
         headers={"Authorization": "Bearer " + token["access_token"]}
     ).json()
 
-    if not yt.get("items"):
-        return "No YouTube channel found"
+    if "items" not in yt or not yt["items"]:
+        return f"YouTube error: {yt}"
 
     session["channel_id"] = yt["items"][0]["id"]
-    return redirect("/verify")
+    return redirect(url_for("verify"))
 
 # =========================
 # ✅ VERIFY WINNER
@@ -117,13 +131,15 @@ def auth():
 @app.route("/verify")
 def verify():
     if "channel_id" not in session:
-        return redirect("/")
+        return redirect(url_for("home"))
+
+    winner_channel_id = load_winner()
 
     if not winner_channel_id:
         return "Winner not set yet"
 
     if session["channel_id"] == winner_channel_id:
-        return redirect("/claim")
+        return redirect(url_for("claim"))
     else:
         return "<h2>Access Denied — Not Winner</h2>"
 
@@ -136,10 +152,12 @@ def sanitize(value):
         return "'" + value
     return value
 
+upi_pattern = r"^[\w.-]+@[\w.-]+$"
+
 @app.route("/claim", methods=["GET", "POST"])
 def claim():
     if "channel_id" not in session:
-        return redirect("/")
+        return redirect(url_for("home"))
 
     if request.method == "POST":
 
@@ -149,6 +167,20 @@ def claim():
 
         if not name or not upi or not phone:
             return "All fields required"
+
+        if not re.match(upi_pattern, upi):
+            return "Invalid UPI ID"
+
+        if not phone.isdigit() or len(phone) < 10:
+            return "Invalid phone number"
+
+        # ✅ Strong duplicate check
+        if os.path.exists("claims.csv"):
+            with open("claims.csv", "r", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    if len(row) > 1 and row[1] == session["channel_id"]:
+                        return "Already submitted"
 
         with open("claims.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
@@ -182,10 +214,7 @@ def set_winner():
     if request.form.get("admin_key") != ADMIN_KEY:
         return "Unauthorized"
 
-    if not YOUTUBE_API_KEY:
-        return "API key missing"
-
-    handle = request.form.get("handle")
+    handle = request.form.get("handle", "").replace("@", "")
 
     if not handle:
         return "Handle required"
@@ -197,14 +226,40 @@ def set_winner():
     if not r.get("items"):
         return "Channel not found"
 
-    global winner_channel_id
     winner_channel_id = r["items"][0]["id"]
     save_winner(winner_channel_id)
 
     return f"Winner set successfully: {winner_channel_id}"
 
 # =========================
-# 🚀 RUN (Render Compatible)
+# 📊 VIEW CLAIMS (ADMIN)
+# =========================
+
+@app.route("/view_claims")
+def view_claims():
+
+    if request.args.get("key") != ADMIN_KEY:
+        return "Unauthorized"
+
+    if not os.path.exists("claims.csv"):
+        return "No claims yet"
+
+    with open("claims.csv", "r", encoding="utf-8") as f:
+        data = f.read()
+
+    return "<pre>" + data + "</pre>"
+
+# =========================
+# 🚪 LOGOUT
+# =========================
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("home"))
+
+# =========================
+# 🚀 RUN
 # =========================
 
 if __name__ == "__main__":
