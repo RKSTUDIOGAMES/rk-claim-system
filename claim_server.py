@@ -305,7 +305,7 @@ def admin_login():
     return premium_page("Admin Login", """
         <h1>🔐 Admin Login</h1>
         <form method="post">
-            <input name="key" placeholder="Enter Admin Key" required>
+            <input type="password" name ="key" placeholder="Enter Admin Key" required>
             <button type="submit">Login</button>
         </form>
     """)
@@ -332,7 +332,7 @@ def admin_panel():
 
         <h3>🎯 Set Winner</h3>
         <form method="post" action="/set_winner">
-            <input name="admin_key" placeholder="Admin Key" required>
+           
             <input name="handle" placeholder="@ChannelHandle" required>
             <button>Set Winner</button>
         </form>
@@ -426,3 +426,4 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
