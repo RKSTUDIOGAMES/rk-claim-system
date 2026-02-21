@@ -464,38 +464,49 @@ def privacy():
     return premium_page("Privacy Policy",
         "<h1>Privacy Policy</h1>"
 
-        "<p>RK Studio operates this application for verifying the ownership "
-        "of YouTube channels for prize distribution purposes.</p>"
+       "<p>RK Studio operates this application to verify the ownership "
+"of YouTube channels for prize distribution purposes only.</p>"
 
-        "<h3>Information We Collect</h3>"
-        "<p>We may collect the following information:</p>"
+"<p>This application is not affiliated with, endorsed by, or sponsored by Google or YouTube.</p>"
 
-        "<ul>"
-        "<li>YouTube Channel ID (from Google Sign-In)</li>"
-        "<li>Name (submitted during prize claim)</li>"
-        "<li>UPI ID (for payment delivery)</li>"
-        "<li>Phone number (for verification)</li>"
-        "</ul>"
+"<h3>Information We Collect</h3>"
+"<p>We may collect the following information:</p>"
 
-        "<h3>How We Use Information</h3>"
-        "<ul>"
-        "<li>Verify giveaway winners</li>"
-        "<li>Deliver prizes</li>"
-        "<li>Prevent fraud</li>"
-        "</ul>"
+"<ul>"
+"<li>YouTube Channel ID (from Google Sign-In)</li>"
+"<li>Name (submitted during prize claim)</li>"
+"<li>UPI ID (for payment delivery)</li>"
+"<li>Phone number (for verification)</li>"
+"</ul>"
 
-        "<h3>Data Sharing</h3>"
-        "<p>We do not sell or share personal data.</p>"
+"<h3>How We Use Information</h3>"
+"<ul>"
+"<li>Verify the identity of giveaway winners</li>"
+"<li>Confirm ownership of the YouTube channel</li>"
+"<li>Deliver prizes</li>"
+"<li>Prevent fraud and duplicate claims</li>"
+"</ul>"
 
-        "<h3>Data Security</h3>"
-        "<p>Information is stored securely and accessed only by RK Studio administrators.</p>"
+"<h3>YouTube API Services</h3>"
+"<p>This application uses YouTube API Services to retrieve the user's channel ID. "
+"By using this app, you agree to the YouTube Terms of Service.</p>"
 
-        "<h3>Data Deletion</h3>"
-        "<p>Users may request deletion by contacting us.</p>"
+"<h3>Data Sharing</h3>"
+"<p>We do not sell, rent, or share personal data with third parties.</p>"
 
-        "<h3>Contact</h3>"
-        "<p>Email: support@rkstudio.in</p>"
-        "<p>RK Studio, India</p>"
+"<h3>Data Retention</h3>"
+"<p>We retain data only as long as necessary to complete prize distribution "
+"and prevent fraud.</p>"
+
+"<h3>Data Security</h3>"
+"<p>Information is stored securely and accessed only by RK Studio administrators.</p>"
+
+"<h3>Data Deletion</h3>"
+"<p>Users may request deletion of their data by contacting us.</p>"
+
+"<h3>Contact</h3>"
+"<p>Email: rajjain2218@gmail.com</p>"
+"<p>RK Studio, India</p>"
     )
  # =========================
 # 🚪 TERMS
@@ -523,6 +534,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
