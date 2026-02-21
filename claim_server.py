@@ -368,7 +368,12 @@ def admin_panel():
         f"<input name='handle' placeholder='@ChannelHandle' required>"
         f"<button>Set Winner</button>"
         f"</form>"
-        "<br><a href='/logout'><button>Logout</button></a>"
+
+        "<hr style='margin:20px 0'>"
+
+        "<a href='/view_claims'><button>📊 View Claims</button></a>"
+        "<a href='/progress'><button>📈 View Activity</button></a>"
+        "<a href='/logout'><button style='background:#ff5252'>🚪 Logout</button></a>"
     )
 
 # =========================
@@ -392,12 +397,59 @@ def set_winner():
     winner_channel_id = r["items"][0]["id"]
     save_winner(winner_channel_id)
 
-    return premium_page("Success", f"<h2>Winner set</h2><p>{winner_channel_id}</p>")
+    return premium_page("Success",
+        f"<h2>Winner set</h2><p>{winner_channel_id}</p>")
+
+# =========================
+# 📊 VIEW CLAIMS
+# =========================
+
+@app.route("/view_claims")
+def view_claims():
+    if not session.get("admin"):
+        return redirect("/admin")
+
+    if not os.path.exists(CLAIMS_FILE):
+        return premium_page("Claims", "<h2>No claims yet</h2>")
+
+    with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
+        data = f.read()
+
+    return premium_page("Claims",
+        f"<h1>📊 Claim Submissions</h1>"
+        f"<pre style='text-align:left'>{data}</pre>"
+        "<a href='/admin_panel'><button>⬅ Back</button></a>"
+    )
+
+# =========================
+# 📈 VIEW PROGRESS
+# =========================
+
+@app.route("/progress")
+def view_progress():
+    if not session.get("admin"):
+        return redirect("/admin")
+
+    if not os.path.exists(PROGRESS_FILE):
+        return premium_page("Progress", "<h2>No activity yet</h2>")
+
+    with open(PROGRESS_FILE, "r", encoding="utf-8") as f:
+        data = f.read()
+
+    return premium_page("Progress",
+        f"<h1>📈 User Activity</h1>"
+        f"<pre style='text-align:left'>{data}</pre>"
+        "<a href='/admin_panel'><button>⬅ Back</button></a>"
+    )
 
 # =========================
 # 🚪 LOGOUT
 # =========================
 
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
 @app.route("/logout")
 def logout():
     session.clear()
@@ -410,3 +462,4 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
