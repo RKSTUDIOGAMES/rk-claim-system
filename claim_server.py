@@ -206,15 +206,31 @@ def home():
     return premium_page("RK Studio Claims",
         "<h1>🏆 RK Studio Claims</h1>"
 
-        "<p>This application is used to verify YouTube channel "
-        "ownership for prize distribution from RK Studio giveaways.</p>"
+        "<p><strong>Official verification portal operated by RK Studio.</strong></p>"
 
-        "<p>Users sign in with Google to confirm their YouTube channel ID.</p>"
+        "<p>This web application is used to verify the ownership of a YouTube "
+        "channel for prize distribution from RK Studio giveaways.</p>"
 
-        "<p>No personal data is sold or shared.</p>"
-                         "<p><strong>Operated by RK Studio.</strong></p>"
+        "<h3>📌 What this app does</h3>"
+        "<ul>"
+        "<li>Allows users to sign in securely using Google</li>"
+        "<li>Retrieves your YouTube Channel ID for ownership verification</li>"
+        "<li>Checks whether your channel is selected as the giveaway winner</li>"
+        "<li>Allows verified winners to submit prize claim details</li>"
+        "</ul>"
 
-        "<a href='/login'><button>🔐 Continue with Google</button></a>"
+        "<h3>🔐 Data Usage Transparency</h3>"
+        "<p>This application only accesses your basic Google account information "
+        "and YouTube Channel ID. No passwords are collected.</p>"
+
+        "<p>Personal information submitted during prize claims is used only "
+        "for delivering prizes and preventing fraud.</p>"
+
+        "<p>This app is not affiliated with or endorsed by Google or YouTube.</p>"
+
+        "<p><strong>Privacy Policy and Terms of Service are available below.</strong></p>"
+
+        "<a href='/login'><button>🔐 Continue with Google Sign-In</button></a>"
 
         "<hr style='margin:20px 0'>"
 
@@ -534,6 +550,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
