@@ -240,7 +240,7 @@ def home():
 
         "<p>This application is independent and not affiliated with Google or YouTube.</p>"
 
-        "<a href='/login'><button>Continue with Sign-In</button></a>"
+        "<a href='/login'><button>Continue with Google Sign-In</button></a>"
 
         "<hr>"
 
@@ -566,6 +566,8 @@ def privacy():
         "<h3>Contact Information</h3>"
         "<p>Email: rajjain2218@gmail.com</p>"
         "<p>Operator: RK Studio, India</p>"
+                        "<p><a href='/'>Home</a> | "
+        "<a href='/terms'>Terms of Service</a></p>"
     )
 # =========================
 # 🚪 TERMS OF SERVICE
@@ -611,6 +613,8 @@ def terms():
 
         "<h3>Contact</h3>"
         "<p>Email: rajjain2218@gmail.com</p>"
+                        "<p><a href='/privacy'>Privacy Policy</a> | "
+        "<a href='/'>Home</a></p>"
     )
 
 # =========================
@@ -629,3 +633,4 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
