@@ -478,65 +478,124 @@ def view_progress():
         "<a href='/admin_panel'><button>⬅ Back</button></a>"
     )
 # =========================
-# 🚪 PRIVACY
+# 🚪 PRIVACY POLICY
 # =========================
 @app.route("/privacy")
 def privacy():
     return premium_page("Privacy Policy",
         "<h1>Privacy Policy</h1>"
 
-       "<p>RK Studio operates this application to verify the ownership "
-"of YouTube channels for prize distribution purposes only.</p>"
+        "<p>RK Studio operates this web application to verify the ownership "
+        "of YouTube channels for giveaway prize distribution purposes only.</p>"
 
-"<p>This application is not affiliated with, endorsed by, or sponsored by Google or YouTube.</p>"
+        "<p>This application is independent and is not affiliated with, endorsed by, "
+        "or sponsored by Google LLC or YouTube.</p>"
 
-"<h3>Information We Collect</h3>"
-"<p>We may collect the following information:</p>"
+        "<h3>Information We Collect</h3>"
+        "<p>When you use this application, we may collect the following information:</p>"
+        "<ul>"
+        "<li>Your Google basic profile information (name and email)</li>"
+        "<li>Your YouTube Channel ID obtained via Google Sign-In</li>"
+        "<li>Name submitted during prize claim</li>"
+        "<li>UPI ID for payment delivery</li>"
+        "<li>Phone number for verification purposes</li>"
+        "</ul>"
 
-"<ul>"
-"<li>YouTube Channel ID (from Google Sign-In)</li>"
-"<li>Name (submitted during prize claim)</li>"
-"<li>UPI ID (for payment delivery)</li>"
-"<li>Phone number (for verification)</li>"
-"</ul>"
+        "<h3>How We Use Information</h3>"
+        "<ul>"
+        "<li>To verify ownership of the YouTube channel</li>"
+        "<li>To confirm eligibility for giveaways</li>"
+        "<li>To deliver prizes to verified winners</li>"
+        "<li>To prevent fraud, impersonation, or duplicate claims</li>"
+        "<li>To maintain records required for dispute resolution</li>"
+        "</ul>"
 
-"<h3>How We Use Information</h3>"
-"<ul>"
-"<li>Verify the identity of giveaway winners</li>"
-"<li>Confirm ownership of the YouTube channel</li>"
-"<li>Deliver prizes</li>"
-"<li>Prevent fraud and duplicate claims</li>"
-"</ul>"
+        "<h3>Use of Google User Data</h3>"
+        "<p>This application accesses Google user data only to retrieve the "
+        "YouTube Channel ID associated with your account.</p>"
+        "<p>We do not access, read, or store your YouTube content, videos, "
+        "subscribers, or private data.</p>"
 
-"<h3>YouTube API Services</h3>"
-"<p>This application uses YouTube API Services to retrieve the user's channel ID. "
-"By using this app, you agree to the YouTube Terms of Service.</p>"
+        "<h3>YouTube API Services</h3>"
+        "<p>This application uses YouTube API Services. By using this application, "
+        "you agree to be bound by the "
+        "<a href='https://www.youtube.com/t/terms'>YouTube Terms of Service</a>.</p>"
 
-"<h3>Data Sharing</h3>"
-"<p>We do not sell, rent, or share personal data with third parties.</p>"
+        "<h3>Data Sharing</h3>"
+        "<p>We do not sell, rent, or trade your personal data to any third parties.</p>"
+        "<p>Your information may be shared only when required by law or for "
+        "fraud prevention.</p>"
 
-"<h3>Data Retention</h3>"
-"<p>We retain data only as long as necessary to complete prize distribution "
-"and prevent fraud.</p>"
+        "<h3>Data Retention</h3>"
+        "<p>Personal information is retained only as long as necessary to "
+        "complete prize distribution and resolve disputes.</p>"
 
-"<h3>Data Security</h3>"
-"<p>Information is stored securely and accessed only by RK Studio administrators.</p>"
+        "<h3>Data Security</h3>"
+        "<p>We implement reasonable administrative and technical measures to "
+        "protect your information from unauthorized access, disclosure, or misuse.</p>"
 
-"<h3>Data Deletion</h3>"
-"<p>Users may request deletion of their data by contacting us.</p>"
+        "<h3>User Rights</h3>"
+        "<p>You may request access to or deletion of your personal data at any time.</p>"
 
-"<h3>Contact</h3>"
-"<p>Email: rajjain2218@gmail.com</p>"
-"<p>RK Studio, India</p>"
+        "<h3>Data Deletion Requests</h3>"
+        "<p>To request deletion of your data, contact us at the email below. "
+        "We will process valid requests within a reasonable timeframe.</p>"
+
+        "<h3>Children's Privacy</h3>"
+        "<p>This application is not intended for use by children under 13 years of age.</p>"
+
+        "<h3>Changes to This Policy</h3>"
+        "<p>We may update this Privacy Policy from time to time. "
+        "Updated versions will be posted on this page.</p>"
+
+        "<h3>Contact Information</h3>"
+        "<p>Email: rajjain2218@gmail.com</p>"
+        "<p>Operator: RK Studio, India</p>"
     )
- # =========================
-# 🚪 TERMS
-# =========================  
+# =========================
+# 🚪 TERMS OF SERVICE
+# =========================
 @app.route("/terms")
 def terms():
-    return premium_page("Terms",
+    return premium_page("Terms of Service",
         "<h1>Terms of Service</h1>"
-        "<p>This tool is used only for prize claim verification.</p>"
+
+        "<p>These Terms govern your use of the RK Studio Claims application.</p>"
+
+        "<h3>Purpose of the Application</h3>"
+        "<p>This tool is designed solely to verify the ownership of a YouTube "
+        "channel for giveaway prize claims conducted by RK Studio.</p>"
+
+        "<h3>Eligibility</h3>"
+        "<p>You must be the legitimate owner of the YouTube channel used to log in.</p>"
+
+        "<h3>User Responsibilities</h3>"
+        "<ul>"
+        "<li>You agree to provide accurate information during the claim process</li>"
+        "<li>You must not impersonate another person or channel</li>"
+        "<li>You must not attempt to bypass verification mechanisms</li>"
+        "</ul>"
+
+        "<h3>Prize Claims</h3>"
+        "<p>Submission of a claim does not guarantee prize delivery unless "
+        "verified as the official winner.</p>"
+
+        "<h3>Fraud Prevention</h3>"
+        "<p>RK Studio reserves the right to reject claims suspected of fraud "
+        "or policy violations.</p>"
+
+        "<h3>Limitation of Liability</h3>"
+        "<p>RK Studio shall not be liable for any indirect or consequential "
+        "loss arising from the use of this application.</p>"
+
+        "<h3>Termination</h3>"
+        "<p>Access may be restricted or terminated for misuse or violation of terms.</p>"
+
+        "<h3>Governing Law</h3>"
+        "<p>These Terms shall be governed by the laws of India.</p>"
+
+        "<h3>Contact</h3>"
+        "<p>Email: rajjain2218@gmail.com</p>"
     )
 
 # =========================
@@ -555,6 +614,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
