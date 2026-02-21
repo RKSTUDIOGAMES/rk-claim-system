@@ -205,14 +205,23 @@ def premium_page(title, content):
 def home():
     return premium_page("RK Studio Claims",
         "<h1>🏆 RK Studio Claims</h1>"
-        "<p>This application is used to verify YouTube channel ownership "
-        "for prize distribution from RK Studio giveaways.</p>"
-        "<p>No personal data is stored except claim details submitted "
-        "by the winner.</p>"
-        "<p>Users must sign in with Google to confirm their YouTube channel.</p>"
-        "<a href='/login'><button>🔐 Continue with Google</button></a>"
-    )
 
+        "<p>This application is used to verify YouTube channel "
+        "ownership for prize distribution from RK Studio giveaways.</p>"
+
+        "<p>Users sign in with Google to confirm their YouTube channel ID.</p>"
+
+        "<p>No personal data is sold or shared.</p>"
+
+        "<a href='/login'><button>🔐 Continue with Google</button></a>"
+
+        "<hr style='margin:20px 0'>"
+
+        "<p style='font-size:14px'>"
+        "<a href='/privacy'>Privacy Policy</a> | "
+        "<a href='/terms'>Terms of Service</a>"
+        "</p>"
+    )
 # =========================
 # 🔑 LOGIN
 # =========================
@@ -483,6 +492,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
