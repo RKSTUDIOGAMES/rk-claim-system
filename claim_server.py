@@ -206,29 +206,42 @@ def home():
     return premium_page("RK Studio Claims",
         "<h1>🏆 RK Studio Claims</h1>"
 
-        "<p><strong>Official verification portal operated by RK Studio.</strong></p>"
+        "<p><strong>Official web application operated by RK Studio (India).</strong></p>"
 
-        "<p>This web application is used to verify the ownership of a YouTube "
-        "channel for prize distribution from RK Studio giveaways.</p>"
+        "<p>This application verifies the ownership of YouTube channels "
+        "for giveaway prize distribution conducted by RK Studio.</p>"
 
-        "<h3>📌 What this app does</h3>"
+        "<h3>📌 Application Identity</h3>"
         "<ul>"
-        "<li>Allows users to sign in securely using Google</li>"
-        "<li>Retrieves your YouTube Channel ID for ownership verification</li>"
-        "<li>Checks whether your channel is selected as the giveaway winner</li>"
-        "<li>Allows verified winners to submit prize claim details</li>"
+        "<li>Application Name: RK Studio Claims</li>"
+        "<li>Operator: RK Studio</li>"
+        "<li>Website: rk-claim-system.onrender.com</li>"
+        "<li>Country: India</li>"
+        "</ul>"
+
+        "<h3>⚙️ Purpose of this Application</h3>"
+        "<p>This tool is used only to confirm that the person claiming a prize "
+        "is the real owner of the winning YouTube channel.</p>"
+
+        "<ul>"
+        "<li>Secure sign-in using Google</li>"
+        "<li>Retrieve YouTube Channel ID via YouTube API</li>"
+        "<li>Verify giveaway winner eligibility</li>"
+        "<li>Allow verified winners to submit prize claim details</li>"
         "</ul>"
 
         "<h3>🔐 Data Usage Transparency</h3>"
-        "<p>This application only accesses your basic Google account information "
-        "and YouTube Channel ID. No passwords are collected.</p>"
+        "<p>The application accesses only basic Google account information "
+        "and the user's YouTube Channel ID.</p>"
 
-        "<p>Personal information submitted during prize claims is used only "
-        "for delivering prizes and preventing fraud.</p>"
+        "<p>No passwords are collected. Personal data is used solely for "
+        "prize delivery and fraud prevention.</p>"
 
-        "<p>This app is not affiliated with or endorsed by Google or YouTube.</p>"
+        "<p>RK Studio does not sell, rent, or share personal information "
+        "with third parties.</p>"
 
-        "<p><strong>Privacy Policy and Terms of Service are available below.</strong></p>"
+        "<p>This application is independent and is not affiliated with, "
+        "endorsed by, or sponsored by Google or YouTube.</p>"
 
         "<a href='/login'><button>🔐 Continue with Google Sign-In</button></a>"
 
@@ -550,6 +563,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
