@@ -462,11 +462,49 @@ def view_progress():
 @app.route("/privacy")
 def privacy():
     return premium_page("Privacy Policy",
-        "<h1>Privacy Policy</h1>"
-        "<p>This application uses Google Sign-In to authenticate users "
-        "and access their YouTube channel ID for prize verification purposes.</p>"
-        "<p>No personal data is sold, shared, or used for advertising.</p>"
-        "<p>Data is used only to confirm the identity of giveaway winners.</p>"
+      <h1>Privacy Policy</h1>
+
+<p>RK Studio operates this application for verifying the ownership
+of YouTube channels for prize distribution purposes.</p>
+
+<h3>Information We Collect</h3>
+
+<p>We may collect the following information:</p>
+
+<ul>
+<li>YouTube Channel ID (from Google Sign-In)</li>
+<li>Name (submitted during prize claim)</li>
+<li>UPI ID (for payment delivery)</li>
+<li>Phone number (for verification)</li>
+</ul>
+
+<h3>How We Use Information</h3>
+
+<p>The collected information is used only to:</p>
+
+<ul>
+<li>Verify the identity of giveaway winners</li>
+<li>Deliver prizes</li>
+<li>Prevent fraud and duplicate claims</li>
+</ul>
+
+<h3>Data Sharing</h3>
+
+<p>We do not sell, rent, or share personal data with third parties.</p>
+
+<h3>Data Security</h3>
+
+<p>All information is stored securely and accessed only by RK Studio administrators.</p>
+
+<h3>Data Deletion</h3>
+
+<p>Users may request deletion of their data by contacting us.</p>
+
+<h3>Contact</h3>
+
+<p>Email: support@rkstudio.in</p>
+
+<p>RK Studio, India</p>
     )
  # =========================
 # 🚪 TERMS
@@ -494,6 +532,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
