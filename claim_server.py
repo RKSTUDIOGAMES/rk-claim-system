@@ -203,8 +203,13 @@ def premium_page(title, content):
 
 @app.route("/")
 def home():
-    return premium_page("Prize Portal",
-        "<h1>🏆 Prize Claim Portal</h1>"
+    return premium_page("RK Studio Claims",
+        "<h1>🏆 RK Studio Claims</h1>"
+        "<p>This application is used to verify YouTube channel ownership "
+        "for prize distribution from RK Studio giveaways.</p>"
+        "<p>No personal data is stored except claim details submitted "
+        "by the winner.</p>"
+        "<p>Users must sign in with Google to confirm their YouTube channel.</p>"
         "<a href='/login'><button>🔐 Continue with Google</button></a>"
     )
 
@@ -441,6 +446,26 @@ def view_progress():
         f"<pre style='text-align:left'>{data}</pre>"
         "<a href='/admin_panel'><button>⬅ Back</button></a>"
     )
+# =========================
+# 🚪 PRIVACY
+# =========================
+@app.route("/privacy")
+def privacy():
+    return premium_page("Privacy Policy",
+        "<h1>Privacy Policy</h1>"
+        "<p>This app only accesses your basic Google profile "
+        "and YouTube channel ID for verification purposes.</p>"
+        "<p>No data is sold or shared.</p>"
+    )
+ # =========================
+# 🚪 TERMS
+# =========================  
+@app.route("/terms")
+def terms():
+    return premium_page("Terms",
+        "<h1>Terms of Service</h1>"
+        "<p>This tool is used only for prize claim verification.</p>"
+    )
 
 # =========================
 # 🚪 LOGOUT
@@ -458,5 +483,6 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
