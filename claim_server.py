@@ -217,7 +217,10 @@ def home():
         "to verify ownership of their YouTube channel before receiving prizes.</p>"
 
         "<p>The app securely retrieves the user's YouTube Channel ID via Google Sign-In "
-        "and confirms eligibility for prize claims.</p>"
+"and confirms eligibility for prize claims.</p>"
+
+"<p><strong>Google user data is used solely for channel ownership verification "
+"and not for any other purpose.</strong></p>"
 
         "<h3>Application Identity</h3>"
         "<ul>"
@@ -614,6 +617,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
