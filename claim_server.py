@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import re
 import threading
+import time
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
@@ -261,8 +262,9 @@ def claim():
 
         if os.path.exists(CLAIMS_FILE):
             with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
-                if session["channel_id"] in f.read():
-                    return premium_page("Error", "<h2 class='error'>Already submitted</h2>")
+                for line in f:
+                    if session["channel_id"] in line.split(","):
+                        return premium_page("Error", "<h2 class='error'>Already submitted</h2>")
 
         with lock:
             with open(CLAIMS_FILE, "a", newline="", encoding="utf-8") as f:
@@ -299,6 +301,7 @@ def admin_login():
             session["admin"] = True
             return redirect("/admin_panel")
         else:
+            time.sleep(2)  # brute force slow down
             return premium_page("Error",
                 "<h2 class='error'>Wrong Admin Key</h2>")
 
@@ -332,7 +335,6 @@ def admin_panel():
 
         <h3>🎯 Set Winner</h3>
         <form method="post" action="/set_winner">
-           
             <input name="handle" placeholder="@ChannelHandle" required>
             <button>Set Winner</button>
         </form>
@@ -345,12 +347,14 @@ def admin_panel():
     """)
 
 # =========================
-# 🏆 SET WINNER
+# 🏆 SET WINNER (SECURED)
 # =========================
 
 @app.route("/set_winner", methods=["POST"])
 def set_winner():
-    if request.form.get("admin_key") != ADMIN_KEY:
+
+    # 🔒 MUST be logged-in admin
+    if not session.get("admin"):
         return premium_page("Error", "<h2 class='error'>Unauthorized</h2>")
 
     handle = request.form.get("handle", "").replace("@", "")
@@ -426,4 +430,3 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
-
