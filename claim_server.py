@@ -212,6 +212,7 @@ def home():
         "<p>Users sign in with Google to confirm their YouTube channel ID.</p>"
 
         "<p>No personal data is sold or shared.</p>"
+                         "<p><strong>Operated by RK Studio.</strong></p>"
 
         "<a href='/login'><button>🔐 Continue with Google</button></a>"
 
@@ -462,9 +463,10 @@ def view_progress():
 def privacy():
     return premium_page("Privacy Policy",
         "<h1>Privacy Policy</h1>"
-        "<p>This app only accesses your basic Google profile "
-        "and YouTube channel ID for verification purposes.</p>"
-        "<p>No data is sold or shared.</p>"
+        "<p>This application uses Google Sign-In to authenticate users "
+        "and access their YouTube channel ID for prize verification purposes.</p>"
+        "<p>No personal data is sold, shared, or used for advertising.</p>"
+        "<p>Data is used only to confirm the identity of giveaway winners.</p>"
     )
  # =========================
 # 🚪 TERMS
@@ -492,6 +494,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
