@@ -1,6 +1,6 @@
 from flask import Flask, redirect, url_for, session, request
 from authlib.integrations.flask_client import OAuth
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 import requests
 import csv
 from datetime import datetime, timedelta
@@ -117,7 +117,7 @@ google = oauth.register(
 )
 
 # =========================
-# 🎨 TEMPLATE
+# 🎨 PREMIUM TEMPLATE (UI ONLY CHANGED)
 # =========================
 
 def premium_page(title, content):
@@ -126,9 +126,73 @@ def premium_page(title, content):
     <head>
         <title>{title}</title>
         <meta name='viewport' content='width=device-width, initial-scale=1'>
+        <style>
+            body {{
+                margin:0;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+                min-height:100vh;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                color:white;
+            }}
+
+            .card {{
+                background: rgba(255,255,255,0.08);
+                backdrop-filter: blur(18px);
+                border-radius: 18px;
+                padding: 30px 25px;
+                width: 92%;
+                max-width: 420px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+                animation: fadeIn 0.6s ease;
+            }}
+
+            h1 {{ margin-top:0; }}
+
+            input {{
+                width: 100%;
+                padding: 12px;
+                margin-top: 10px;
+                border-radius: 10px;
+                border: none;
+                outline: none;
+                font-size: 15px;
+            }}
+
+            button {{
+                width: 100%;
+                padding: 13px;
+                margin-top: 16px;
+                border: none;
+                border-radius: 12px;
+                background: linear-gradient(90deg,#00c6ff,#0072ff);
+                color: white;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: 0.25s;
+            }}
+
+            button:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            }}
+
+            a {{ text-decoration:none; }}
+
+            @keyframes fadeIn {{
+                from {{opacity:0; transform:translateY(20px);}}
+                to {{opacity:1; transform:translateY(0);}}
+            }}
+        </style>
     </head>
-    <body style="font-family:Arial; background:#0f2027; color:white; text-align:center; padding:30px;">
-        {content}
+
+    <body>
+        <div class="card">
+            {content}
+        </div>
     </body>
     </html>
     """
@@ -172,7 +236,6 @@ def auth():
     if not yt.get("items"):
         return premium_page("Error", "<h2>YouTube access failed</h2>")
 
-    # ✅ Session fixation protection
     session.clear()
     session["channel_id"] = yt["items"][0]["id"]
 
@@ -206,7 +269,7 @@ def verify():
 def sanitize(value):
     if value.startswith(("=", "+", "-", "@")):
         return "'" + value
-    return value[:100]  # limit length
+    return value[:100]
 
 upi_pattern = r"^[a-zA-Z0-9._-]{2,}@[a-zA-Z]{2,}$"
 
@@ -242,14 +305,17 @@ def claim():
 
         return premium_page("Success", "<h2>✅ Claim Submitted Successfully</h2>")
 
+    token = generate_csrf()
+
     return premium_page("Claim",
-        "<h1>🎁 Prize Claim Form</h1>"
-        "<form method='post'>"
-        "<input name='name' placeholder='Full Name' required><br><br>"
-        "<input name='upi' placeholder='UPI ID' required><br><br>"
-        "<input name='phone' placeholder='Phone Number' required><br><br>"
-        "<button type='submit'>Submit Claim</button>"
-        "</form>"
+        f"<h1>🎁 Prize Claim Form</h1>"
+        f"<form method='post'>"
+        f"<input type='hidden' name='csrf_token' value='{token}'>"
+        f"<input name='name' placeholder='Full Name' required>"
+        f"<input name='upi' placeholder='UPI ID' required>"
+        f"<input name='phone' placeholder='Phone Number' required>"
+        f"<button type='submit'>Submit Claim</button>"
+        f"</form>"
     )
 
 # =========================
@@ -262,7 +328,7 @@ def admin_login():
     if request.method == "POST":
         if request.form.get("key") == ADMIN_KEY:
 
-            session.clear()  # fixation protection
+            session.clear()
             session.permanent = True
             session["admin"] = True
 
@@ -271,12 +337,15 @@ def admin_login():
             time.sleep(2)
             return premium_page("Error", "<h2>Wrong Admin Key</h2>")
 
+    token = generate_csrf()
+
     return premium_page("Admin Login",
-        "<h1>🔐 Admin Login</h1>"
-        "<form method='post'>"
-        "<input type='password' name='key' required><br><br>"
-        "<button>Login</button>"
-        "</form>"
+        f"<h1>🔐 Admin Login</h1>"
+        f"<form method='post'>"
+        f"<input type='hidden' name='csrf_token' value='{token}'>"
+        f"<input type='password' name='key' placeholder='Admin Key' required>"
+        f"<button>Login</button>"
+        f"</form>"
     )
 
 # =========================
@@ -289,14 +358,16 @@ def admin_panel():
         return redirect("/admin")
 
     winner = load_winner() or "Not announced yet"
+    token = generate_csrf()
 
     return premium_page("Admin Panel",
         f"<h1>⚙️ Admin Panel</h1>"
         f"<h3>🏆 Current Winner</h3><p>{winner}</p>"
-        "<form method='post' action='/set_winner'>"
-        "<input name='handle' placeholder='@ChannelHandle' required><br><br>"
-        "<button>Set Winner</button>"
-        "</form>"
+        f"<form method='post' action='/set_winner'>"
+        f"<input type='hidden' name='csrf_token' value='{token}'>"
+        f"<input name='handle' placeholder='@ChannelHandle' required>"
+        f"<button>Set Winner</button>"
+        f"</form>"
         "<br><a href='/logout'><button>Logout</button></a>"
     )
 
