@@ -125,72 +125,74 @@ def premium_page(title, content):
     <html>
     <head>
         <title>{title}</title>
-        <meta name='viewport' content='width=device-width, initial-scale=1'>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body {{
-                margin:0;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-                min-height:100vh;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                color:white;
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background: #f4f4f4;
+                color: #222;
             }}
 
-            .card {{
-                background: rgba(255,255,255,0.08);
-                backdrop-filter: blur(18px);
-                border-radius: 18px;
-                padding: 30px 25px;
-                width: 92%;
-                max-width: 420px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-                animation: fadeIn 0.6s ease;
+            .container {{
+                max-width: 480px;
+                margin: 60px auto;
+                background: #fff;
+                padding: 24px;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             }}
 
-            h1 {{ margin-top:0; }}
+            h1, h2, h3 {{
+                margin-top: 0;
+            }}
+
+            p {{
+                line-height: 1.5;
+            }}
+
+            ul {{
+                padding-left: 18px;
+            }}
 
             input {{
                 width: 100%;
-                padding: 12px;
-                margin-top: 10px;
-                border-radius: 10px;
-                border: none;
-                outline: none;
-                font-size: 15px;
+                padding: 10px;
+                margin-top: 8px;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                font-size: 14px;
             }}
 
             button {{
                 width: 100%;
-                padding: 13px;
-                margin-top: 16px;
+                padding: 12px;
+                margin-top: 14px;
                 border: none;
-                border-radius: 12px;
-                background: linear-gradient(90deg,#00c6ff,#0072ff);
+                border-radius: 6px;
+                background: #1976d2;
                 color: white;
-                font-size: 16px;
-                font-weight: bold;
+                font-size: 15px;
                 cursor: pointer;
-                transition: 0.25s;
             }}
 
             button:hover {{
-                transform: translateY(-2px);
-                box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+                background: #155fa0;
             }}
 
-            a {{ text-decoration:none; }}
+            a {{
+                color: #1976d2;
+                text-decoration: none;
+            }}
 
-            @keyframes fadeIn {{
-                from {{opacity:0; transform:translateY(20px);}}
-                to {{opacity:1; transform:translateY(0);}}
+            hr {{
+                margin: 20px 0;
             }}
         </style>
     </head>
 
     <body>
-        <div class="card">
+        <div class="container">
             {content}
         </div>
     </body>
@@ -563,6 +565,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
