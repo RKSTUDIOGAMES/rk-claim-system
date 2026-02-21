@@ -1,8 +1,9 @@
 from flask import Flask, redirect, url_for, session, request
 from authlib.integrations.flask_client import OAuth
+from flask_wtf.csrf import CSRFProtect
 import requests
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import re
 import threading
@@ -23,25 +24,44 @@ ADMIN_KEY = os.environ.get("ADMIN_KEY")
 
 if not SECRET_KEY:
     raise RuntimeError("FLASK_SECRET_KEY missing")
-
 if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
     raise RuntimeError("Google OAuth credentials missing")
-
 if not ADMIN_KEY:
     raise RuntimeError("ADMIN_KEY missing")
-
 if not YOUTUBE_API_KEY:
     raise RuntimeError("YOUTUBE_API_KEY missing")
 
 app.secret_key = SECRET_KEY
+
+# ✅ CSRF Protection
+csrf = CSRFProtect(app)
+
+# ✅ HTTPS Proxy Fix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+# ✅ Session Security
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     PREFERRED_URL_SCHEME="https"
 )
+
+# ✅ Admin session timeout
+app.permanent_session_lifetime = timedelta(minutes=30)
+
+# =========================
+# 🛡️ SECURITY HEADERS
+# =========================
+
+@app.after_request
+def secure_headers(response):
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'"
+    return response
 
 # =========================
 # 📁 DATA STORAGE
@@ -78,11 +98,7 @@ def log_step(channel_id, step):
     with lock:
         with open(PROGRESS_FILE, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow([
-                datetime.now().isoformat(),
-                channel_id,
-                step
-            ])
+            writer.writerow([datetime.now().isoformat(), channel_id, step])
 
 # =========================
 # 🔐 GOOGLE OAUTH
@@ -101,7 +117,7 @@ google = oauth.register(
 )
 
 # =========================
-# 🎨 PREMIUM TEMPLATE
+# 🎨 TEMPLATE
 # =========================
 
 def premium_page(title, content):
@@ -110,56 +126,9 @@ def premium_page(title, content):
     <head>
         <title>{title}</title>
         <meta name='viewport' content='width=device-width, initial-scale=1'>
-        <style>
-            body {{
-                margin:0;
-                height:100vh;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-family:Arial, sans-serif;
-                background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-                color:white;
-            }}
-            .card {{
-                background: rgba(255,255,255,0.08);
-                backdrop-filter: blur(20px);
-                border-radius:20px;
-                padding:35px;
-                width:90%;
-                max-width:420px;
-                text-align:center;
-                box-shadow:0 0 40px rgba(0,0,0,0.6);
-            }}
-            input {{
-                width:100%;
-                padding:14px;
-                margin:8px 0;
-                border-radius:10px;
-                border:none;
-                font-size:16px;
-            }}
-            button {{
-                width:100%;
-                padding:15px;
-                margin-top:15px;
-                font-size:18px;
-                border:none;
-                border-radius:12px;
-                background:#00c853;
-                color:white;
-                cursor:pointer;
-                font-weight:bold;
-            }}
-            .google {{background:#4285F4;}}
-            .error {{color:#ff5252;}}
-            .success {{color:#00e676;}}
-        </style>
     </head>
-    <body>
-        <div class="card">
-            {content}
-        </div>
+    <body style="font-family:Arial; background:#0f2027; color:white; text-align:center; padding:30px;">
+        {content}
     </body>
     </html>
     """
@@ -170,12 +139,10 @@ def premium_page(title, content):
 
 @app.route("/")
 def home():
-    return premium_page("Prize Portal", """
-        <h1>🏆 Prize Claim Portal</h1>
-        <a href="/login">
-            <button class="google">🔐 Continue with Google</button>
-        </a>
-    """)
+    return premium_page("Prize Portal",
+        "<h1>🏆 Prize Claim Portal</h1>"
+        "<a href='/login'><button>🔐 Continue with Google</button></a>"
+    )
 
 # =========================
 # 🔑 LOGIN
@@ -194,30 +161,33 @@ def login():
 def auth():
     try:
         token = google.authorize_access_token()
-    except Exception as e:
-        return premium_page("Error", f"<h2 class='error'>Login Failed</h2><p>{e}</p>")
+    except Exception:
+        return premium_page("Error", "<h2>Login Failed</h2>")
 
     yt = requests.get(
         "https://www.googleapis.com/youtube/v3/channels?part=id&mine=true",
         headers={"Authorization": "Bearer " + token["access_token"]}
     ).json()
 
-    if "items" not in yt or not yt["items"]:
-        return premium_page("Error", "<h2 class='error'>YouTube access failed</h2>")
+    if not yt.get("items"):
+        return premium_page("Error", "<h2>YouTube access failed</h2>")
 
+    # ✅ Session fixation protection
+    session.clear()
     session["channel_id"] = yt["items"][0]["id"]
+
     log_step(session["channel_id"], "logged_in")
 
     return redirect(url_for("verify"))
 
 # =========================
-# ✅ VERIFY WINNER
+# ✅ VERIFY
 # =========================
 
 @app.route("/verify")
 def verify():
     if "channel_id" not in session:
-        return redirect(url_for("home"))
+        return redirect("/")
 
     winner_channel_id = load_winner()
 
@@ -225,25 +195,25 @@ def verify():
         return premium_page("Pending", "<h2>Winner not announced yet</h2>")
 
     if session["channel_id"] == winner_channel_id:
-        return redirect(url_for("claim"))
+        return redirect("/claim")
     else:
-        return premium_page("Denied", "<h2 class='error'>Access Denied — Not Winner</h2>")
+        return premium_page("Denied", "<h2>Access Denied — Not Winner</h2>")
 
 # =========================
-# 📝 CLAIM FORM
+# 📝 CLAIM
 # =========================
 
 def sanitize(value):
     if value.startswith(("=", "+", "-", "@")):
         return "'" + value
-    return value
+    return value[:100]  # limit length
 
 upi_pattern = r"^[a-zA-Z0-9._-]{2,}@[a-zA-Z]{2,}$"
 
 @app.route("/claim", methods=["GET", "POST"])
 def claim():
     if "channel_id" not in session:
-        return redirect(url_for("home"))
+        return redirect("/")
 
     if request.method == "POST":
 
@@ -252,24 +222,17 @@ def claim():
         phone = sanitize(request.form.get("phone", "").strip())
 
         if not name or not upi or not phone:
-            return premium_page("Error", "<h2 class='error'>All fields required</h2>")
+            return premium_page("Error", "<h2>All fields required</h2>")
 
         if not re.match(upi_pattern, upi):
-            return premium_page("Error", "<h2 class='error'>Invalid UPI ID</h2>")
+            return premium_page("Error", "<h2>Invalid UPI ID</h2>")
 
         if not re.match(r"^[6-9]\d{9}$", phone):
-            return premium_page("Error", "<h2 class='error'>Invalid phone number</h2>")
-
-        if os.path.exists(CLAIMS_FILE):
-            with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
-                for line in f:
-                    if session["channel_id"] in line.split(","):
-                        return premium_page("Error", "<h2 class='error'>Already submitted</h2>")
+            return premium_page("Error", "<h2>Invalid phone number</h2>")
 
         with lock:
             with open(CLAIMS_FILE, "a", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                writer.writerow([
+                csv.writer(f).writerow([
                     datetime.now().isoformat(),
                     session["channel_id"],
                     name,
@@ -277,17 +240,17 @@ def claim():
                     phone
                 ])
 
-        return premium_page("Success", "<h2 class='success'>✅ Claim Submitted Successfully</h2>")
+        return premium_page("Success", "<h2>✅ Claim Submitted Successfully</h2>")
 
-    return premium_page("Claim Prize", """
-        <h1>🎁 Prize Claim Form</h1>
-        <form method="post">
-            <input name="name" placeholder="Full Name" required>
-            <input name="upi" placeholder="UPI ID" required>
-            <input name="phone" placeholder="Phone Number" required>
-            <button type="submit">Submit Claim</button>
-        </form>
-    """)
+    return premium_page("Claim",
+        "<h1>🎁 Prize Claim Form</h1>"
+        "<form method='post'>"
+        "<input name='name' placeholder='Full Name' required><br><br>"
+        "<input name='upi' placeholder='UPI ID' required><br><br>"
+        "<input name='phone' placeholder='Phone Number' required><br><br>"
+        "<button type='submit'>Submit Claim</button>"
+        "</form>"
+    )
 
 # =========================
 # 🔐 ADMIN LOGIN
@@ -298,20 +261,23 @@ def admin_login():
 
     if request.method == "POST":
         if request.form.get("key") == ADMIN_KEY:
+
+            session.clear()  # fixation protection
+            session.permanent = True
             session["admin"] = True
+
             return redirect("/admin_panel")
         else:
-            time.sleep(2)  # brute force slow down
-            return premium_page("Error",
-                "<h2 class='error'>Wrong Admin Key</h2>")
+            time.sleep(2)
+            return premium_page("Error", "<h2>Wrong Admin Key</h2>")
 
-    return premium_page("Admin Login", """
-        <h1>🔐 Admin Login</h1>
-        <form method="post">
-            <input type="password" name ="key" placeholder="Enter Admin Key" required>
-            <button type="submit">Login</button>
-        </form>
-    """)
+    return premium_page("Admin Login",
+        "<h1>🔐 Admin Login</h1>"
+        "<form method='post'>"
+        "<input type='password' name='key' required><br><br>"
+        "<button>Login</button>"
+        "</form>"
+    )
 
 # =========================
 # ⚙️ ADMIN PANEL
@@ -319,43 +285,29 @@ def admin_login():
 
 @app.route("/admin_panel")
 def admin_panel():
-
     if not session.get("admin"):
         return redirect("/admin")
 
     winner = load_winner() or "Not announced yet"
 
-    return premium_page("Admin Panel", f"""
-        <h1>⚙️ Admin Panel</h1>
-
-        <h3>🏆 Current Winner</h3>
-        <p style="color:#00e676">{winner}</p>
-
-        <hr style="margin:20px 0">
-
-        <h3>🎯 Set Winner</h3>
-        <form method="post" action="/set_winner">
-            <input name="handle" placeholder="@ChannelHandle" required>
-            <button>Set Winner</button>
-        </form>
-
-        <hr style="margin:20px 0">
-
-        <a href="/view_claims"><button>📊 View Claims</button></a>
-        <a href="/progress"><button>📈 View Activity</button></a>
-        <a href="/logout"><button style="background:#ff5252">🚪 Logout</button></a>
-    """)
+    return premium_page("Admin Panel",
+        f"<h1>⚙️ Admin Panel</h1>"
+        f"<h3>🏆 Current Winner</h3><p>{winner}</p>"
+        "<form method='post' action='/set_winner'>"
+        "<input name='handle' placeholder='@ChannelHandle' required><br><br>"
+        "<button>Set Winner</button>"
+        "</form>"
+        "<br><a href='/logout'><button>Logout</button></a>"
+    )
 
 # =========================
-# 🏆 SET WINNER (SECURED)
+# 🏆 SET WINNER
 # =========================
 
 @app.route("/set_winner", methods=["POST"])
 def set_winner():
-
-    # 🔒 MUST be logged-in admin
     if not session.get("admin"):
-        return premium_page("Error", "<h2 class='error'>Unauthorized</h2>")
+        return premium_page("Error", "<h2>Unauthorized</h2>")
 
     handle = request.form.get("handle", "").replace("@", "")
 
@@ -364,55 +316,12 @@ def set_winner():
     ).json()
 
     if not r.get("items"):
-        return premium_page("Error", "<h2 class='error'>Channel not found</h2>")
+        return premium_page("Error", "<h2>Channel not found</h2>")
 
     winner_channel_id = r["items"][0]["id"]
     save_winner(winner_channel_id)
 
-    return premium_page("Success",
-        f"<h2 class='success'>Winner set successfully</h2><p>{winner_channel_id}</p>")
-
-# =========================
-# 📊 VIEW CLAIMS
-# =========================
-
-@app.route("/view_claims")
-def view_claims():
-    if not session.get("admin"):
-        return redirect("/admin")
-
-    if not os.path.exists(CLAIMS_FILE):
-        return premium_page("Claims", "<h2>No claims yet</h2>")
-
-    with open(CLAIMS_FILE, "r", encoding="utf-8") as f:
-        data = f.read()
-
-    return premium_page("Claims", f"""
-        <h1>📊 Claim Submissions</h1>
-        <pre style="text-align:left">{data}</pre>
-        <a href="/admin_panel"><button>⬅ Back</button></a>
-    """)
-
-# =========================
-# 📈 VIEW PROGRESS
-# =========================
-
-@app.route("/progress")
-def view_progress():
-    if not session.get("admin"):
-        return redirect("/admin")
-
-    if not os.path.exists(PROGRESS_FILE):
-        return premium_page("Progress", "<h2>No activity yet</h2>")
-
-    with open(PROGRESS_FILE, "r", encoding="utf-8") as f:
-        data = f.read()
-
-    return premium_page("Progress", f"""
-        <h1>📈 User Activity</h1>
-        <pre style="text-align:left">{data}</pre>
-        <a href="/admin_panel"><button>⬅ Back</button></a>
-    """)
+    return premium_page("Success", f"<h2>Winner set</h2><p>{winner_channel_id}</p>")
 
 # =========================
 # 🚪 LOGOUT
@@ -421,7 +330,7 @@ def view_progress():
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("home"))
+    return redirect("/")
 
 # =========================
 # 🚀 RUN
