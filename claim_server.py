@@ -210,50 +210,39 @@ def home():
 
         "<p><strong>Official web application operated by RK Studio (India).</strong></p>"
 
-        "<p>This application verifies the ownership of YouTube channels "
-        "for giveaway prize distribution conducted by RK Studio.</p>"
+        "<p>This page is publicly accessible and does not require login.</p>"
 
-        "<h3>📌 Application Identity</h3>"
+        "<h3>About This Application</h3>"
+        "<p>This application is used by participants of RK Studio giveaways "
+        "to verify ownership of their YouTube channel before receiving prizes.</p>"
+
+        "<p>The app securely retrieves the user's YouTube Channel ID via Google Sign-In "
+        "and confirms eligibility for prize claims.</p>"
+
+        "<h3>Application Identity</h3>"
         "<ul>"
         "<li>Application Name: RK Studio Claims</li>"
         "<li>Operator: RK Studio</li>"
-        "<li>Website:rkclaims.in</li>"
+        "<li>Website: https://rkclaims.in</li>"
         "<li>Country: India</li>"
+        "<li>Contact Email: rajjain2218@gmail.com</li>"
         "</ul>"
 
-        "<h3>⚙️ Purpose of this Application</h3>"
-        "<p>This tool is used only to confirm that the person claiming a prize "
-        "is the real owner of the winning YouTube channel.</p>"
-
+        "<h3>Data Usage</h3>"
         "<ul>"
-        "<li>Secure sign-in using Google</li>"
-        "<li>Retrieve YouTube Channel ID via YouTube API</li>"
-        "<li>Verify giveaway winner eligibility</li>"
-        "<li>Allow verified winners to submit prize claim details</li>"
+        "<li>Google basic profile information</li>"
+        "<li>YouTube Channel ID</li>"
+        "<li>Claim details for prize delivery</li>"
         "</ul>"
 
-        "<h3>🔐 Data Usage Transparency</h3>"
-        "<p>The application accesses only basic Google account information "
-        "and the user's YouTube Channel ID.</p>"
+        "<p>This application is independent and not affiliated with Google or YouTube.</p>"
 
-        "<p>No passwords are collected. Personal data is used solely for "
-        "prize delivery and fraud prevention.</p>"
+        "<a href='/login'><button>Continue with Google Sign-In</button></a>"
 
-        "<p>RK Studio does not sell, rent, or share personal information "
-        "with third parties.</p>"
+        "<hr>"
 
-        "<p>This application is independent and is not affiliated with, "
-        "endorsed by, or sponsored by Google or YouTube.</p>"
-                        "<li>Contact Email: rajjain2218@gmail.com</li>"
-
-        "<a href='/login'><button>🔐 Continue with Google Sign-In</button></a>"
-
-        "<hr style='margin:20px 0'>"
-
-        "<p style='font-size:14px'>"
-        "<a href='/privacy'>Privacy Policy</a> | "
-        "<a href='/terms'>Terms of Service</a>"
-        "</p>"
+        "<p><a href='/privacy'>Privacy Policy</a> | "
+        "<a href='/terms'>Terms of Service</a></p>"
     )
 # =========================
 # 🔑 LOGIN
@@ -566,6 +555,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
