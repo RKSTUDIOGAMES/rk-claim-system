@@ -1,4 +1,4 @@
-Flask
-authlib
-Flask-WTF
-requests
+Flask>=2.3
+authlib>=1.2
+requests>=2.31
+Flask-WTF>=1.2
