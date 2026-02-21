@@ -206,7 +206,7 @@ def premium_page(title, content):
 @app.route("/")
 def home():
     return premium_page("RK Studio Claims",
-        "<h1>🏆 RK Studio Claims</h1>"
+        "<h1>RK Studio Claims</h1>"
 
         "<p><strong>Official web application operated by RK Studio (India).</strong></p>"
 
@@ -217,7 +217,7 @@ def home():
         "<ul>"
         "<li>Application Name: RK Studio Claims</li>"
         "<li>Operator: RK Studio</li>"
-        "<li>Website: rk-claim-system.onrender.com</li>"
+        "<li>Website:rkclaims.in</li>"
         "<li>Country: India</li>"
         "</ul>"
 
@@ -244,6 +244,7 @@ def home():
 
         "<p>This application is independent and is not affiliated with, "
         "endorsed by, or sponsored by Google or YouTube.</p>"
+                        "<li>Contact Email: rajjain2218@gmail.com</li>"
 
         "<a href='/login'><button>🔐 Continue with Google Sign-In</button></a>"
 
@@ -565,6 +566,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
