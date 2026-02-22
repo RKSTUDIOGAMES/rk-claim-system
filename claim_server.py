@@ -295,7 +295,7 @@ def auth():
     return redirect(url_for("verify"))
 
 # =========================
-# ✅ VERIFY
+# ✅ VERIFY (UPDATED UI ADDED)
 # =========================
 
 @app.route("/verify")
@@ -306,12 +306,26 @@ def verify():
     winner_channel_id = load_winner()
 
     if not winner_channel_id:
-        return premium_page("Pending", "<h2>Winner not announced yet</h2>")
+        return premium_page("Pending",
+            "<h2>⏳ Winner not announced yet</h2>"
+        )
 
+    # ✅ WINNER MATCH
     if session["channel_id"] == winner_channel_id:
-        return redirect("/claim")
+        return premium_page("Verified",
+            "<h2>✅ Verification Successful</h2>"
+            "<p><strong>Channel ID matched with winner record.</strong></p>"
+            "<p>Access granted. You may now proceed to claim your prize.</p>"
+            "<a href='/claim'><button>Continue to Claim</button></a>"
+        )
+
+    # ❌ NOT WINNER
     else:
-        return premium_page("Denied", "<h2>Access Denied — Not Winner</h2>")
+        return premium_page("Access Denied",
+            "<h2>❌ Verification Failed</h2>"
+            "<p><strong>Channel ID did not match the winner record.</strong></p>"
+            "<p>Access denied. Only the verified winner can claim the prize.</p>"
+        )
 
 # =========================
 # 📝 CLAIM
@@ -633,4 +647,5 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
