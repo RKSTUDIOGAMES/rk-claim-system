@@ -266,7 +266,10 @@ def login_page():
 @app.route("/google_login")
 def google_login():
     redirect_uri = url_for("auth", _external=True, _scheme="https")
-    return google.authorize_redirect(redirect_uri)
+    return google.authorize_redirect(
+        redirect_uri,
+        include_granted_scopes="true"
+    )
 
 # =========================
 # 🔐 AUTH CALLBACK
@@ -647,5 +650,6 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
