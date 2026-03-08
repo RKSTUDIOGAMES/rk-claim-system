@@ -636,11 +636,12 @@ def privacy():
         "<h3>Children's Privacy</h3>"
         "<p>This application is not intended for use by children under 13 years of age.</p>"
 
-        "<h3>Changes to This Policy</h3>"
-        "<p>We may update this Privacy Policy from time to time. "
-        "Updated versions will be posted on this page.</p>"
-    "<p>Users may request deletion of their stored data using the 
-<a href="/delete_data">Data Deletion Request page</a>.</p>"
+       "<h3>Changes to This Policy</h3>"
+"<p>We may update this Privacy Policy from time to time. "
+"Updated versions will be posted on this page.</p>"
+
+"<p>Users may request deletion of their stored data using the "
+"<a href='/delete_data'>Data Deletion Request page</a>.</p>"
 
         "<h3>Contact Information</h3>"
         "<p>Email: rajjain2218@gmail.com</p>"
@@ -753,6 +754,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
