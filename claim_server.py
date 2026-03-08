@@ -247,7 +247,7 @@ def home():
         "<p><a href='/privacy'>Privacy Policy</a> | "
         "<a href='/terms'>Terms of Service</a>
          | "
-        "<a href='/delete_data'>Delte My Data</a></p>"
+        "<a href='/delete_data'>Delete My Data</a></p>"
     )
 # =========================
 # 🔑 LOGIN PAGE (NO AUTO REDIRECT)
@@ -754,6 +754,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
