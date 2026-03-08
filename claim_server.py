@@ -60,7 +60,7 @@ def secure_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
     return response
 
 # =========================
@@ -275,24 +275,29 @@ def login_page():
 
         "<button id='loginBtn' disabled style='opacity:0.5;margin-top:15px;'>Continue with Google</button>"
 
-        "<script>"
-        "const checkbox=document.getElementById('agree');"
-        "const btn=document.getElementById('loginBtn');"
+     "<script>"
+"const checkbox = document.getElementById('agree');"
+"const btn = document.getElementById('loginBtn');"
 
-        "checkbox.addEventListener('change',()=>{"
-        "if(checkbox.checked){"
-        "btn.disabled=false;"
-        "btn.style.opacity='1';"
-        "}else{"
-        "btn.disabled=true;"
-        "btn.style.opacity='0.5';"
-        "}"
-        "});"
+"function updateButton(){"
+"    if(checkbox.checked){"
+"        btn.disabled = false;"
+"        btn.style.opacity = '1';"
+"    }else{"
+"        btn.disabled = true;"
+"        btn.style.opacity = '0.5';"
+"    }"
+"}"
 
-        "btn.addEventListener('click',()=>{"
-        "window.location='/google_login';"
-        "});"
-        "</script>"
+"checkbox.onclick = updateButton;"
+"checkbox.onchange = updateButton;"
+
+"btn.onclick = function(){"
+"    if(!btn.disabled){"
+"        window.location.href='/google_login';"
+"    }"
+"};"
+"</script>"
 
         "<hr>"
 
@@ -308,27 +313,38 @@ def login_page():
 
 @app.route("/google_login")
 def google_login():
-    redirect_uri = url_for("auth", _external=True, _scheme="https")
+
+    redirect_uri = "https://rkclaims.in/auth"
+
     return google.authorize_redirect(
         redirect_uri,
+        access_type="offline",
         include_granted_scopes="true"
     )
-
 # =========================
 # 🔐 AUTH CALLBACK
 # =========================
 
 @app.route("/auth")
 def auth():
+
+    # 🔐 Get OAuth token
     try:
         token = google.authorize_access_token()
     except Exception:
         return premium_page("Error", "<h2>Login Failed</h2>")
 
-    yt = requests.get(
-        "https://www.googleapis.com/youtube/v3/channels?part=id&mine=true",
-        headers={"Authorization": "Bearer " + token["access_token"]}
-    ).json()
+    if "access_token" not in token:
+        return premium_page("Error", "<h2>Token Error</h2>")
+
+    # 📡 Get YouTube Channel ID
+    try:
+        yt = requests.get(
+            "https://www.googleapis.com/youtube/v3/channels?part=id&mine=true",
+            headers={"Authorization": "Bearer " + token["access_token"]}
+        ).json()
+    except Exception:
+        return premium_page("Error", "<h2>YouTube API Error</h2>")
 
     if not yt.get("items"):
         return premium_page("Error", "<h2>YouTube access failed</h2>")
@@ -693,4 +709,5 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
