@@ -245,7 +245,9 @@ def home():
         "<hr>"
 
         "<p><a href='/privacy'>Privacy Policy</a> | "
-        "<a href='/terms'>Terms of Service</a></p>"
+        "<a href='/terms'>Terms of Service</a>
+         | "
+        "<a href='/delete_data'>Delte My Data</a></p>"
     )
 # =========================
 # 🔑 LOGIN PAGE (NO AUTO REDIRECT)
@@ -638,6 +640,8 @@ def privacy():
         "<h3>Changes to This Policy</h3>"
         "<p>We may update this Privacy Policy from time to time. "
         "Updated versions will be posted on this page.</p>"
+    "<p>Users may request deletion of their stored data using the 
+<a href="/delete_data">Data Deletion Request page</a>.</p>"
 
         "<h3>Contact Information</h3>"
         "<p>Email: rajjain2218@gmail.com</p>"
@@ -645,6 +649,47 @@ def privacy():
                         "<p><a href='/'>Home</a> | "
         "<a href='/terms'>Terms of Service</a></p>"
     )
+# =========================
+# 🚪 DELETE DATA
+# =========================
+
+@app.route("/delete_data", methods=["GET", "POST"])
+def delete_data():
+
+    if request.method == "POST":
+
+        email = request.form.get("email", "").strip()
+
+        if not email:
+            return premium_page("Error","<h2>Email required</h2>")
+
+        with open("data/delete_requests.csv","a",newline="",encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                datetime.now().isoformat(),
+                email
+            ])
+
+        return premium_page("Request Sent",
+            "<h2>✅ Data deletion request submitted</h2>"
+            "<p>We will process your request within 7 days.</p>"
+        )
+
+    token = generate_csrf()
+
+    return premium_page("Delete Data",
+        f"<h1>Request Data Deletion</h1>"
+        f"<p>If you want us to delete your stored data, submit your email below.</p>"
+
+        f"<form method='post'>"
+        f"<input type='hidden' name='csrf_token' value='{token}'>"
+        f"<input name='email' placeholder='Your Google Email' required>"
+        f"<button>Submit Request</button>"
+        f"</form>"
+    )
+
+
+
 # =========================
 # 🚪 TERMS OF SERVICE
 # =========================
@@ -709,5 +754,6 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
