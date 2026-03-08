@@ -320,7 +320,8 @@ def google_login():
     return google.authorize_redirect(
         redirect_uri,
         access_type="offline",
-        include_granted_scopes="true"
+        include_granted_scopes="true",
+        prompt="consent"
     )
 # =========================
 # 🔐 AUTH CALLBACK
@@ -754,6 +755,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
