@@ -256,7 +256,50 @@ def login_page():
     return premium_page("Sign In",
         "<h1>Sign In Required</h1>"
         "<p>Please sign in with your Google account to verify your YouTube channel.</p>"
-        "<a href='/google_login'><button>Continue with Google</button></a>"
+
+        "<h3>Permissions Required</h3>"
+        "<p>This application will request the following permissions:</p>"
+
+        "<ul>"
+        "<li>Access your Google basic profile (name and email)</li>"
+        "<li>Retrieve your YouTube Channel ID</li>"
+        "</ul>"
+
+        "<p>The data is used only for verifying ownership of the YouTube channel "
+        "before allowing prize claims.</p>"
+
+        "<label style='display:flex;align-items:center;margin-top:10px;'>"
+        "<input type='checkbox' id='agree' style='width:auto;margin-right:10px;'>"
+        "I agree to allow this application to access the above permissions"
+        "</label>"
+
+        "<button id='loginBtn' disabled style='opacity:0.5;margin-top:15px;'>Continue with Google</button>"
+
+        "<script>"
+        "const checkbox=document.getElementById('agree');"
+        "const btn=document.getElementById('loginBtn');"
+
+        "checkbox.addEventListener('change',()=>{"
+        "if(checkbox.checked){"
+        "btn.disabled=false;"
+        "btn.style.opacity='1';"
+        "}else{"
+        "btn.disabled=true;"
+        "btn.style.opacity='0.5';"
+        "}"
+        "});"
+
+        "btn.addEventListener('click',()=>{"
+        "window.location='/google_login';"
+        "});"
+        "</script>"
+
+        "<hr>"
+
+        "<p>"
+        "<a href='/privacy'>Privacy Policy</a> | "
+        "<a href='/terms'>Terms of Service</a>"
+        "</p>"
     )
 
 # =========================
@@ -650,3 +693,4 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
