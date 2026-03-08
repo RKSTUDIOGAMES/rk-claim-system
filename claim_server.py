@@ -245,8 +245,7 @@ def home():
         "<hr>"
 
         "<p><a href='/privacy'>Privacy Policy</a> | "
-        "<a href='/terms'>Terms of Service</a>
-         | "
+        "<a href='/terms'>Terms of Service</a> | "
         "<a href='/delete_data'>Delete My Data</a></p>"
     )
 # =========================
@@ -754,6 +753,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
